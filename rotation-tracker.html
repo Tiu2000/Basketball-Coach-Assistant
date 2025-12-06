@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIU Rotation & Time Tracker</title>
+    <style>
+        /* --- GLOBAL & THEME --- */
+        :root {
+            --primary: #1a237e;     /* Deep Blue */
+            --accent: #ff6f00;      /* Basketball Orange */
+            --bg: #f0f2f5;
+            --success: #2e7d32;
+            --danger: #c62828;
+            --equity: #0097a7;
+            --cashapp: #00D632;     /* Cash App Green */
+            --dark-panel: #222;
+        }
+        
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg); 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+        }
+
+        /* --- NAVIGATION --- */
+        .app-nav {
+            background: var(--primary);
+            display: flex;
+            justify-content: center;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); }
+        .nav-btn.active { color: white; border-bottom-color: var(--accent); background: rgba(255,255,255,0.1); }
+        /* Cash App Nav Button Style */
+        .nav-btn.donate-btn { color: var(--cashapp); }
+        .nav-btn.donate-btn:hover { color: #fff; text-shadow: 0 0 5px var(--cashapp); }
+
+        /* --- SHARED COMPONENTS --- */
+        .action-btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: 0.2s; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-orange { background: var(--accent); color: white; }
+        .btn-red { background: var(--danger); color: white; }
+        .btn-green { background: var(--success); color: white; }
+        
+        /* WIDE PANEL UPDATE */
+        .panel { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin: 20px auto; max-width: 95%; }
+
+        /* ========================================= */
+        /* TAB 1: ROTATION TRACKER STYLES */
+        /* ========================================= */
+        .tr-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .tr-brand h2 { margin: 0; color: var(--primary); }
+        .clock-container { display: flex; flex-direction: column; align-items: flex-end; margin-left: 10px; }
+        .game-clock { font-family: 'Courier New', monospace; font-size: 2rem; font-weight: bold; color: #333; }
+        .clock-top-row { display: flex; align-items: center; }
+        
+        .mode-container { display: flex; justify-content: center; align-items: center; background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 20px; gap: 15px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--equity); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .game-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .game-board { grid-template-columns: 1fr; } }
+        .court-area, .bench-area { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .court-area { border: 2px solid var(--primary); }
+
+        .player-card { display: flex; align-items: center; background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+        .pos-badge { background: #eee; color: #555; font-size: 0.75rem; font-weight: bold; padding: 4px; border-radius: 4px; margin-right: 10px; width: 35px; text-align: center; }
+        .player-info { flex: 1; }
+        .bar-container { height: 6px; background: #eee; border-radius: 3px; margin-top: 5px; width: 100%; overflow: hidden; }
+        .status-bar { height: 100%; transition: width 0.5s, background-color 0.5s; }
+
+        /* --- MODAL --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 600px; padding: 20px; border-radius: 8px; text-align: center; }
+        #notification { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
+        
+        .cash-app-btn {
+            background-color: var(--cashapp);
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px 0;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .cash-app-btn:hover { transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+
+        @media print {
+            .app-nav, .add-controls, .data-controls, .mode-container, #coach-feedback { display: none !important; }
+            body { background: white !important; }
+            .panel { box-shadow: none; border: 1px solid #ccc; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="app-nav">
+        <button class="nav-btn active">Rotation & Time</button>
+        <a href="stat-recorder.html" class="nav-btn">Stat Recorder</a>
+        <a href="play-designer.html" class="nav-btn">Play Designer</a>
+        <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
+    </nav>
+
+    <div id="notification">Action Recorded</div>
+
+    <div id="view-tracker" class="view-section">
+        <div class="panel">
+            <div class="tr-header">
+                <div class="tr-brand">
+                    <h2>Game Tracker</h2>
+                    <span style="color:#777">Manage Substitutions & Fatigue</span>
+                </div>
+                <div class="clock-container">
+                    <div class="clock-top-row">
+                        <span style="background:var(--accent); color:white; padding:4px 8px; border-radius:4px;" id="quarter-display">Q1</span>
+                        <span class="game-clock" id="clock-display">08:00</span>
+                        <button class="action-btn btn-blue" onclick="openSettings()" style="background:#555; padding:4px 8px; margin-left:10px; border-radius: 50%; width: 30px; height: 30px; display:flex; justify-content:center; align-items:center;">⚙️</button>
+                    </div>
+                    <div style="font-size:0.8rem; margin-top:5px; color:#777;">
+                        Home TO: <strong id="home-to-display">3</strong> | Guest TO: <strong id="guest-to-display">3</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-container">
+                <span style="font-weight:bold; color:#777">Fatigue Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="mode-switch" onchange="toggleMode()">
+                    <span class="slider round"></span>
+                </label>
+                <span style="font-weight:bold; color:#777">Equity Mode</span>
+            </div>
+
+            <div class="controls-row" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; justify-content: center;">
+                <button id="game-toggle" class="action-btn btn-green" style="flex:2; padding:12px; font-size:1.1rem;" onclick="toggleGame()">Start Clock</button>
+                <button id="next-q-btn" class="action-btn btn-blue" style="flex:1; display:none;" onclick="nextQuarter()">Start Next Q</button>
+                <button class="action-btn btn-blue" onclick="openPlanner()">Auto-Plan</button>
+                <button class="action-btn" style="background:#888; color:white;" onclick="callTimeout('home')">Home TO</button>
+                <button class="action-btn" style="background:#888; color:white;" onclick="callTimeout('guest')">Guest TO</button>
+            </div>
+
+            <div id="coach-feedback" style="background:#e0f7fa; padding:10px; margin-bottom:15px; border-radius:4px; display:none; border-left:4px solid var(--equity);">
+                <span id="feedback-text"></span>
+                <button class="action-btn btn-blue" style="float:right; padding:4px 8px;" onclick="applySuggestion()">Swap</button>
+            </div>
+
+            <div class="game-board">
+                <div class="court-area">
+                    <h3 style="margin-top:0; border-bottom:1px solid #eee;">On Court <span id="court-count">0/5</span></h3>
+                    <div id="court-list"></div>
+                </div>
+                <div class="bench-area">
+                    <h3 style="margin-top:0; border-bottom:1px solid #eee;">Bench</h3>
+                    <div id="bench-list"></div>
+                </div>
+            </div>
+
+            <div class="add-controls" style="background:#f8f9fa; padding:15px; margin-top:20px; border-radius:8px; display:flex; gap:10px; justify-content:center; flex-wrap: wrap;">
+                <input type="text" id="player-name" placeholder="New Player Name" style="padding:8px; flex: 1; min-width: 120px;">
+                <select id="player-position" style="padding:8px;">
+                    <option value="PG">PG</option><option value="SG">SG</option>
+                    <option value="SF">SF</option><option value="PF">PF</option><option value="C">C</option>
+                </select>
+                <button class="action-btn btn-blue" onclick="addPlayer()">+ Add</button>
+                <button class="action-btn btn-green" onclick="openBulkImport()">Bulk Import</button>
+                <button class="action-btn btn-orange" onclick="generateRecommendation()">Suggest Sub</button>
+            </div>
+
+            <div class="data-controls" style="margin-top:20px; text-align:center;">
+                <button class="action-btn" style="border:1px solid #ccc" onclick="exportTimeStats()">Export Time CSV</button>
+                <button class="action-btn" style="border:1px solid #ccc" onclick="window.print()">Print Report</button>
+                <button class="action-btn btn-red" onclick="resetAll()">New Game (Reset All)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h3>Game Settings</h3>
+            <div style="margin-bottom:15px;">
+                <label for="setting-quarter-length" style="display:block; margin-bottom:5px; font-weight:bold;">Quarter Length (Minutes):</label>
+                <input type="number" id="setting-quarter-length" min="1" max="15" value="8" style="padding:8px; width:100%; border:1px solid #ccc; border-radius:4px;">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label for="setting-timeouts" style="display:block; margin-bottom:5px; font-weight:bold;">Total Timeouts (Per Team):</label>
+                <input type="number" id="setting-timeouts" min="0" max="10" value="3" style="padding:8px; width:100%; border:1px solid #ccc; border-radius:4px;">
+            </div>
+            <button class="action-btn btn-green" onclick="saveSettings()" style="width:100%; margin-bottom:10px;">Save Settings & Reset Game</button>
+            <button class="action-btn" onclick="document.getElementById('settings-modal').style.display='none'" style="width:100%; border:1px solid #ccc;">Close</button>
+        </div>
+    </div>
+    
+    <div id="donate-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
+            <p>If you find this tool useful, consider supporting future development!</p>
+            
+            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-app-btn">
+                $ Donate via Cash App
+            </a>
+            
+            <p style="font-size:0.8rem; color:#666;">(Links open in a new tab)</p>
+            <button class="action-btn btn-gray" onclick="closeDonateModal()">Close</button>
+        </div>
+    </div>
+    
+    <div id="planner-modal" class="modal">
+        <div class="modal-content">
+            <h3>Auto-Scheduler</h3>
+            <p>Generates a fair rotation plan for 8 shifts (start and middle of each quarter).</p>
+            <button class="action-btn btn-blue" onclick="generatePlan()">Generate</button>
+            <button class="action-btn" onclick="document.getElementById('planner-modal').style.display='none'">Close</button>
+            <div id="plan-container" style="margin-top:15px; max-height:300px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div id="bulk-modal" class="modal">
+        <div class="modal-content">
+            <h3>Bulk Import Roster</h3>
+            <p>Paste list below. Format: <b>Name, Position</b> per line.<br><small>Example: LeBron James, SF</small></p>
+            <textarea id="bulk-input" rows="8" style="width:100%; margin-bottom:10px; padding:10px; font-family:monospace;" placeholder="John Doe, PG&#10;Jane Smith, C"></textarea>
+            <button class="action-btn btn-green" style="width:100%; margin-bottom:10px;" onclick="processBulkImport()">Import Players</button>
+            <button class="action-btn btn-red" style="width:100%;" onclick="document.getElementById('bulk-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const STORE_KEY = 'tiu_ultimate_suite_v2'; 
+        let trPlayers = []; let stPlayers = []; let statHistory = [];
+        let currentQuarter = 1; let gameSeconds = 8 * 60; let gameActive = false;
+        let timerInterval = null; let equityMode = false;
+        let quarterLengthInMinutes = 8; let totalTimeoutsPerTeam = 3; 
+        let homeTimeoutsRemaining = 3; let guestTimeoutsRemaining = 3;
+
+        window.onload = function() {
+            loadData();
+            const modeSwitch = document.getElementById('mode-switch');
+            if (modeSwitch) equityMode = modeSwitch.checked;
+        };
+
+        function loadData() {
+            const saved = localStorage.getItem(STORE_KEY);
+            if(saved) {
+                const data = JSON.parse(saved);
+                trPlayers = data.trPlayers || [];
+                stPlayers = data.stPlayers || [];
+                currentQuarter = data.currentQuarter || 1;
+                quarterLengthInMinutes = data.quarterLengthInMinutes || 8;
+                totalTimeoutsPerTeam = data.totalTimeoutsPerTeam || 3;
+                homeTimeoutsRemaining = data.homeTimeoutsRemaining !== undefined ? data.homeTimeoutsRemaining : totalTimeoutsPerTeam;
+                guestTimeoutsRemaining = data.guestTimeoutsRemaining !== undefined ? data.guestTimeoutsRemaining : totalTimeoutsPerTeam;
+                gameSeconds = data.gameSeconds !== undefined && data.gameSeconds > 0 ? data.gameSeconds : quarterLengthInMinutes * 60;
+                statHistory = data.statHistory || [];
+            }
+            renderTracker(); updateClockUI(); updateTimeoutsUI();
+        }
+
+        function saveData() {
+            const data = { trPlayers, stPlayers, currentQuarter, gameSeconds, statHistory, quarterLengthInMinutes, totalTimeoutsPerTeam, homeTimeoutsRemaining, guestTimeoutsRemaining };
+            localStorage.setItem(STORE_KEY, JSON.stringify(data));
+        }
+
+        function resetAll() {
+            if(confirm("Clear ALL data and Roster?")) {
+                localStorage.removeItem(STORE_KEY); location.reload();
+            }
+        }
+        function formatTime(s) {
+            const m = Math.floor(s/60); const sec = s%60;
+            return `${m}:${sec<10?'0':''}${sec}`;
+        }
+        function showNotif(msg) {
+            const n = document.getElementById('notification'); n.innerText = msg; n.style.opacity = 1;
+            setTimeout(() => n.style.opacity = 0, 2000);
+        }
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], {type:'text/csv;charset=utf-8;'});
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click();
+        }
+
+        function addPlayer() {
+            const name = document.getElementById('player-name').value.trim();
+            const pos = document.getElementById('player-position').value;
+            if(!name) return;
+            createPlayer(name, pos);
+            document.getElementById('player-name').value = ''; showNotif(`Added ${name}`);
+        }
+        function createPlayer(name, pos) {
+            const newId = Date.now() + Math.random();
+            trPlayers.push({ id: newId, name: name, position: pos, totalTime: 0, currentFatigue: 0, isOnCourt: false, recoveryCounter: 0 });
+            stPlayers.push({ id: newId, name: name, stats: { ft: 0, fg: 0, zp: 0, reb: 0, ast: 0, stl: 0, blk: 0, to: 0, pf: 0 } });
+            saveData(); renderTracker();
+        }
+        function openBulkImport() { document.getElementById('bulk-modal').style.display = 'flex'; }
+        function processBulkImport() {
+            const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
+            const lines = raw.split('\n');
+            lines.forEach(line => {
+                const parts = line.split(',');
+                if(parts.length > 0 && parts[0].trim()) {
+                    const name = parts[0].trim();
+                    const pos = parts[1] ? parts[1].trim().toUpperCase() : 'PG'; 
+                    createPlayer(name, pos);
+                }
+            });
+            document.getElementById('bulk-modal').style.display = 'none'; document.getElementById('bulk-input').value = '';
+        }
+
+        function toggleGame() {
+            if(gameSeconds <= 0 && !gameActive) return;
+            gameActive = !gameActive;
+            const btn = document.getElementById('game-toggle');
+            if(gameActive) {
+                btn.textContent = "Pause Clock"; btn.className = "action-btn btn-red";
+                document.getElementById('next-q-btn').style.display = 'none';
+                timerInterval = setInterval(gameTick, 1000);
+            } else {
+                btn.textContent = "Resume Clock"; btn.className = "action-btn btn-green";
+                clearInterval(timerInterval); saveData();
+            }
+        }
+        function gameTick() {
+            if(gameSeconds > 0) {
+                gameSeconds--; updateClockUI();
+                trPlayers.forEach(p => {
+                    if(p.isOnCourt) { p.totalTime++; p.currentFatigue++; } 
+                    else { p.recoveryCounter++; if(p.recoveryCounter >= 4) { if(p.currentFatigue > 0) p.currentFatigue--; p.recoveryCounter = 0; } }
+                });
+                renderTracker();
+                if(gameSeconds % 10 === 0) saveData(); 
+            } else {
+                toggleGame();
+                document.getElementById('game-toggle').textContent = "End of Quarter";
+                document.getElementById('next-q-btn').style.display = 'block';
+                alert("Quarter Ended");
+            }
+        }
+        function nextQuarter() {
+            currentQuarter++; gameSeconds = quarterLengthInMinutes * 60;
+            document.getElementById('quarter-display').textContent = "Q" + currentQuarter;
+            updateClockUI(); document.getElementById('next-q-btn').style.display = 'none';
+            document.getElementById('game-toggle').textContent = "Start Clock"; document.getElementById('game-toggle').className = "action-btn btn-green";
+            trPlayers.forEach(p => { p.currentFatigue = Math.max(0, p.currentFatigue - 30); });
+            saveData(); renderTracker();
+        }
+        function updateClockUI() {
+            const m = Math.floor(gameSeconds / 60); const s = gameSeconds % 60;
+            document.getElementById('clock-display').textContent = `${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
+        }
+        function updateTimeoutsUI() {
+            document.getElementById('home-to-display').textContent = homeTimeoutsRemaining;
+            document.getElementById('guest-to-display').textContent = guestTimeoutsRemaining;
+        }
+        function callTimeout(team) {
+            if (!gameActive) { showNotif("Clock is not running."); return; }
+            if (team === 'home') {
+                if (homeTimeoutsRemaining > 0) { homeTimeoutsRemaining--; toggleGame(); showNotif(`Home Timeout! ${homeTimeoutsRemaining} left.`); } 
+                else { showNotif("Home has no timeouts."); return; }
+            } else if (team === 'guest') {
+                if (guestTimeoutsRemaining > 0) { guestTimeoutsRemaining--; toggleGame(); showNotif(`Guest Timeout! ${guestTimeoutsRemaining} left.`); }
+                else { showNotif("Guest has no timeouts."); return; }
+            }
+            updateTimeoutsUI(); saveData();
+        }
+        function toggleMode() { equityMode = document.getElementById('mode-switch').checked; renderTracker(); }
+        function subPlayer(id) {
+            const p = trPlayers.find(x => x.id === id); const onCourt = trPlayers.filter(x => x.isOnCourt).length;
+            if(!p.isOnCourt && onCourt >= 5) { alert("Court is full (5 players). Sub someone out first."); return; }
+            p.isOnCourt = !p.isOnCourt; saveData(); renderTracker();
+        }
+        function renderTracker() {
+            const courtList = document.getElementById('court-list'); const benchList = document.getElementById('bench-list');
+            courtList.innerHTML = ''; benchList.innerHTML = '';
+            document.getElementById('court-count').innerText = `${trPlayers.filter(p=>p.isOnCourt).length}/5`;
+            let courtP = trPlayers.filter(p => p.isOnCourt); let benchP = trPlayers.filter(p => !p.isOnCourt);
+            if(equityMode) { courtP.sort((a,b) => b.totalTime - a.totalTime); benchP.sort((a,b) => a.totalTime - b.totalTime); } 
+            else { courtP.sort((a,b) => b.currentFatigue - a.currentFatigue); benchP.sort((a,b) => a.currentFatigue - b.currentFatigue); }
+            const createCard = (p) => {
+                const elapsed = ((currentQuarter-1)*quarterLengthInMinutes*60) + ((quarterLengthInMinutes*60) - gameSeconds);
+                let pct, color;
+                if(equityMode) { pct = (p.totalTime / Math.max(1, elapsed)) * 100; color = 'var(--equity)'; } 
+                else { pct = Math.max(0, 100 - ((p.currentFatigue/(quarterLengthInMinutes*60))*100)); color = pct<30 ? 'var(--danger)' : (pct<60?'#fbc02d':'var(--success)'); }
+                return `<div class="player-card"><div class="pos-badge">${p.position}</div><div class="player-info"><strong>${p.name}</strong> <span style="color:#777; font-size:0.8rem">(${formatTime(p.totalTime)})</span><div class="bar-container"><div class="status-bar" style="width:${Math.min(100, pct)}%; background:${color}"></div></div></div><button class="action-btn ${p.isOnCourt?'':'btn-green'}" style="margin-left:10px; background:${p.isOnCourt?'#eee':'var(--primary)'}; color:${p.isOnCourt?'#333':'white'}" onclick="subPlayer(${p.id})">${p.isOnCourt ? 'Sit' : 'Play'}</button></div>`;
+            };
+            courtP.forEach(p => courtList.innerHTML += createCard(p)); benchP.forEach(p => benchList.innerHTML += createCard(p));
+        }
+        function openSettings() { 
+            document.getElementById('setting-quarter-length').value = quarterLengthInMinutes;
+            document.getElementById('setting-timeouts').value = totalTimeoutsPerTeam;
+            document.getElementById('settings-modal').style.display = 'flex'; 
+        }
+        function saveSettings() {
+            if(gameActive && !confirm("Game is active. Saving settings will reset the clock. Continue?")) return;
+            quarterLengthInMinutes = parseInt(document.getElementById('setting-quarter-length').value);
+            totalTimeoutsPerTeam = parseInt(document.getElementById('setting-timeouts').value);
+            if(gameActive) toggleGame();
+            currentQuarter = 1; gameSeconds = quarterLengthInMinutes * 60;
+            homeTimeoutsRemaining = totalTimeoutsPerTeam; guestTimeoutsRemaining = totalTimeoutsPerTeam;
+            document.getElementById('quarter-display').textContent = "Q1";
+            updateClockUI(); updateTimeoutsUI(); saveData(); showNotif("Settings Saved");
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+        function openPlanner() { document.getElementById('planner-modal').style.display = 'flex'; }
+        function generatePlan() {
+            const p = [...trPlayers]; if(p.length < 5) { alert("Need 5+ players"); return; }
+            let html = "<table style='width:100%; border-collapse:collapse;'><tr><th>Period</th><th>Lineup</th></tr>";
+            for(let i=0; i<8; i++) {
+                const lineup = []; for(let j=0; j<5; j++) lineup.push(p[(i*5 + j) % p.length].name);
+                html += `<tr><td style='border:1px solid #ddd; padding:5px;'>${i%2==0?'Start':'Mid'} Q${Math.floor(i/2)+1}</td><td style='border:1px solid #ddd; padding:5px;'>${lineup.join(', ')}</td></tr>`;
+            }
+            document.getElementById('plan-container').innerHTML = html + "</table>";
+        }
+        function generateRecommendation() {
+            const c = trPlayers.filter(p=>p.isOnCourt); const b = trPlayers.filter(p=>!p.isOnCourt); if(!c.length || !b.length) return;
+            c.sort((x,y) => y.currentFatigue - x.currentFatigue); b.sort((x,y) => x.currentFatigue - y.currentFatigue);
+            document.getElementById('feedback-text').innerHTML = `Sub OUT <b>${c[0].name}</b>, IN <b>${b[0].name}</b>`;
+            document.getElementById('coach-feedback').style.display = 'block';
+            window.pendingSub = { out: c[0].id, in: b[0].id };
+        }
+        function applySuggestion() {
+            if(window.pendingSub) { subPlayer(window.pendingSub.out); subPlayer(window.pendingSub.in); document.getElementById('coach-feedback').style.display = 'none'; }
+        }
+        function exportTimeStats() {
+            let csv = "Name,Pos,TimeFormatted,Seconds\n";
+            trPlayers.forEach(p => csv += `${p.name},${p.position},${formatTime(p.totalTime)},${p.totalTime}\n`);
+            downloadCSV(csv, "TIU_TimeStats.csv");
+        }
+
+        // --- DONATE MODAL LOGIC ---
+        function openDonateModal() { document.getElementById('donate-modal').style.display = 'flex'; }
+        function closeDonateModal() { document.getElementById('donate-modal').style.display = 'none'; }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIU Play Designer</title>
+    <style>
+        /* --- GLOBAL & THEME --- */
+        :root {
+            --primary: #1a237e;     /* Deep Blue */
+            --accent: #ff6f00;      /* Basketball Orange */
+            --bg: #f0f2f5;
+            --success: #2e7d32;
+            --danger: #c62828;
+            --equity: #0097a7;
+            --cashapp: #00D632;     /* Cash App Green */
+            --dark-panel: #222;
+        }
+        
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg); 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+        }
+
+        /* --- NAVIGATION --- */
+        .app-nav {
+            background: var(--primary);
+            display: flex;
+            justify-content: center;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); }
+        .nav-btn.active { color: white; border-bottom-color: var(--accent); background: rgba(255,255,255,0.1); }
+        /* Cash App Nav Button Style */
+        .nav-btn.donate-btn { color: var(--cashapp); }
+        .nav-btn.donate-btn:hover { color: #fff; text-shadow: 0 0 5px var(--cashapp); }
+
+        /* --- SHARED COMPONENTS --- */
+        .action-btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: 0.2s; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-orange { background: var(--accent); color: white; }
+        .btn-red { background: var(--danger); color: white; }
+        .btn-green { background: var(--success); color: white; }
+        .btn-gray { background: #6c757d; color: white; }
+        .btn-print { background: #555; color: white; }
+        
+        /* Notification Box */
+        #notification { position: fixed; top: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
+
+        /* --- PLAY DESIGNER SPECIFIC STYLES --- */
+        .designer-container {
+            display: grid;
+            grid-template-columns: 250px 1fr 250px;
+            gap: 15px;
+            padding: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: calc(100vh - 60px); /* Fill remaining height */
+        }
+        
+        @media (max-width: 1000px) {
+            .designer-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .tool-sidebar { order: 2; }
+            .court-area-wrapper { order: 1; }
+        }
+
+        .tool-sidebar {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .court-area-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tool-btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            cursor: pointer;
+            text-align: left;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .tool-btn:hover { background: #e9ecef; }
+        .tool-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        /* Court Styles */
+        #court-wrapper {
+            position: relative;
+            background: white;
+            padding: 5px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            flex-grow: 1; /* Allow growing to fill space */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        #basketball-court {
+            width: 100%;
+            aspect-ratio: 500/470; /* Standard Half Court Ratio */
+            max-height: 100%;
+            background: #d2a679;
+            position: relative;
+            overflow: hidden;
+            /* Court Lines SVG */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 500 470' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='500' height='470' fill='%23d2a679'/%3E%3Cg fill='none' stroke='white' stroke-width='4'%3E%3C!-- Lane --%3E%3Crect x='170' y='0' width='160' height='190'/%3E%3C!-- Free Throw Circle --%3E%3Ccircle cx='250' cy='190' r='60'/%3E%3C!-- Hoop Backboard --%3E%3Cline x1='220' y1='40' x2='280' y2='40'/%3E%3C!-- Hoop --%3E%3Ccircle cx='250' cy='52.5' r='7.5' stroke-width='2'/%3E%3C!-- 3 Point Line --%3E%3Cpath d='M 30 0 L 30 140 Q 30 140 30 140 A 237.5 237.5 0 0 0 470 140 L 470 0'/%3E%3C!-- Center Court Arc --%3E%3Cpath d='M 190 470 A 60 60 0 0 1 310 470'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        #drawing-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            /* Cursor handled by JS */
+        }
+        
+        #objects-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 20;
+            pointer-events: none; /* Let clicks pass through to canvas if not on an object */
+        }
+
+        /* Draggable Objects */
+        .draggable-obj {
+            position: absolute;
+            cursor: grab;
+            user-select: none;
+            pointer-events: auto; /* Re-enable pointer events for objects */
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 35px; height: 35px;
+            transform: translate(-50%, -50%); /* Center on coordinate */
+        }
+        .drag-player {
+            border-radius: 50%;
+            color: white;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-size: 0.9rem;
+        }
+        .drag-ball { font-size: 1.5rem; }
+        .drag-cone { 
+            width: 0; height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 20px solid var(--accent);
+            background: transparent;
+        }
+
+        /* Sequence Controls */
+        .seq-control-panel {
+            background: #eee;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .seq-display {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin: 5px 0;
+            display: block;
+        }
+        .seq-row {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        /* Color Picker */
+        .color-picker-row { display: flex; gap: 5px; margin-bottom: 10px; }
+        .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+        .color-dot.active { border-color: #333; transform: scale(1.1); }
+
+        /* MODAL STYLES */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .cash-app-btn {
+            background-color: var(--cashapp);
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px 0;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .cash-app-btn:hover { transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+
+        /* PRINT STYLES */
+        @media print {
+            .app-nav, .tool-sidebar { display: none !important; }
+            .designer-container { grid-template-columns: 1fr; height: auto; }
+            #court-wrapper { border: 1px solid black; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="app-nav">
+        <a href="rotation-tracker.html" class="nav-btn">Rotation & Time</a>
+        <a href="stat-recorder.html" class="nav-btn">Stat Recorder</a>
+        <button class="nav-btn active">Play Designer</button>
+        <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
+    </nav>
+    
+    <div id="notification">Action Recorded</div>
+
+    <div class="designer-container">
+        <div class="tool-sidebar">
+            <h3>Tools</h3>
+            <div class="color-picker-row">
+                <div class="color-dot active" style="background:white;" onclick="setColor('white', this)" title="White"></div>
+                <div class="color-dot" style="background:#ffeb3b;" onclick="setColor('#ffeb3b', this)" title="Yellow"></div>
+                <div class="color-dot" style="background:#f44336;" onclick="setColor('#f44336', this)" title="Red"></div>
+                <div class="color-dot" style="background:#2196f3;" onclick="setColor('#2196f3', this)" title="Blue"></div>
+                <div class="color-dot" style="background:#4caf50;" onclick="setColor('#4caf50', this)" title="Green"></div>
+                <div class="color-dot" style="background:#000;" onclick="setColor('#000', this)" title="Black"></div>
+            </div>
+
+            <button class="tool-btn active" id="tool-move" onclick="setTool('move')">✋ Move / Select</button>
+            
+            <h4>Drawing</h4>
+            <button class="tool-btn" id="tool-cut" onclick="setTool('cut')">➝ Cut (Solid)</button>
+            <button class="tool-btn" id="tool-dribble" onclick="setTool('dribble')">〰 Dribble (Dash)</button>
+            <button class="tool-btn" id="tool-pass" onclick="setTool('pass')">--- Pass (Dot)</button>
+            <button class="tool-btn" id="tool-screen" onclick="setTool('screen')">T Screen</button>
+            <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">⌫ Eraser</button>
+
+            <h4>Objects</h4>
+            <button class="tool-btn" onclick="addObj('player')">👤 Add Player</button>
+            <button class="tool-btn" onclick="addObj('opponent')">🛡️ Add Defender</button>
+            <button class="tool-btn" onclick="addObj('ball')">🏀 Add Ball</button>
+            <button class="tool-btn" onclick="addObj('cone')">⚠️ Add Cone</button>
+            <button class="tool-btn" onclick="addObj('text')">Aa Add Text</button>
+            
+            <hr style="width:100%; border:0; border-top:1px solid #ddd;">
+            <button class="tool-btn" style="color:red;" onclick="clearCanvas()">🗑 Clear All</button>
+        </div>
+
+        <div class="court-area-wrapper">
+            <div class="seq-control-panel">
+                <span class="seq-display" id="seq-step-display">Frame 1 / 1</span>
+                <div class="seq-row">
+                    <button class="action-btn" onclick="prevFrame()">◀ Prev</button>
+                    <button class="action-btn" id="play-anim-btn" onclick="playAnimation()">▶ Play</button>
+                    <button class="action-btn" onclick="nextFrame()">Next ▶</button>
+                </div>
+                <div class="seq-row">
+                    <button class="action-btn btn-blue" onclick="addFrame()">+ Add Frame</button>
+                    <button class="action-btn btn-red" onclick="deleteFrame()" style="font-size:0.8rem; padding:4px;">Delete Frame</button>
+                </div>
+            </div>
+
+            <div id="court-wrapper">
+                <div id="basketball-court">
+                    <canvas id="drawing-canvas"></canvas>
+                    <div id="objects-layer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tool-sidebar">
+            <h3>Formation</h3>
+            <button class="tool-btn" onclick="loadFormation('man')">Man-to-Man</button>
+            <button class="tool-btn" onclick="loadFormation('23')">2-3 Zone</button>
+            <button class="tool-btn" onclick="loadFormation('32')">3-2 Zone</button>
+            <button class="tool-btn" onclick="loadFormation('5out')">5 Out</button>
+            <button class="tool-btn" onclick="loadFormation('4out')">4 Out 1 In</button>
+            
+            <h3>Preset Plays</h3>
+            <select id="preset-select" class="tool-btn" style="padding:5px;">
+                <option value="">Select Play...</option>
+                <option value="horns">Horns Set (N-S)</option>
+                <option value="blitz">Side Out Blitz (E-W)</option>
+                <option value="flex">Flex Cut (Mix)</option>
+                <option value="shuffle">Shuffle Cut</option>
+            </select>
+            <button class="action-btn btn-orange" style="width:100%" onclick="loadPreset()">Load Preset</button>
+
+            <h3>File</h3>
+            <input type="text" id="play-save-name" placeholder="Play Name" style="width:100%; margin-bottom:5px; padding:5px;">
+            <button class="tool-btn btn-green" onclick="exportPlayJSON()">💾 Save to File</button>
+            <button class="tool-btn" onclick="document.getElementById('imp-file').click()">📂 Load File</button>
+            <input type="file" id="imp-file" style="display:none" onchange="loadPlayJSON(this)">
+            <button class="tool-btn" onclick="window.print()">🖨️ Print Play</button>
+        </div>
+    </div>
+
+    <div id="donate-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
+            <p>If you find this tool useful, consider supporting future development!</p>
+            
+            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-app-btn">
+                $ Donate via Cash App
+            </a>
+            
+            <p style="font-size:0.8rem; color:#666;">(Links open in a new tab)</p>
+            <button class="action-btn btn-gray" onclick="closeDonateModal()">Close</button>
+        </div>
+    </div>
+
+<script>
+    // =========================================================================
+    // CORE STATE
+    // =========================================================================
+    const DATA_KEY = 'tiu_ultimate_suite_v2'; 
+    const COURT_WIDTH = 500;  // Logical width for normalization
+    const COURT_HEIGHT = 470; // Logical height for normalization
+
+    // Designer State
+    let canvas, ctx, courtContainer, objectsLayer;
+    let currentTool = 'move';
+    let currentColor = 'white';
+    
+    // Play Data Structure
+    let playSequence = [{ objects: [], paths: [] }];
+    let currentFrameIndex = 0;
+    
+    // Runtime State
+    let isDrawing = false;
+    let currentPath = null;
+    let isPlaying = false;
+    let animInterval = null;
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        initDesigner();
+        // Try to load existing data if available, otherwise start fresh
+        loadData();
+    };
+    window.onresize = resizeCanvas;
+
+    function initDesigner() {
+        canvas = document.getElementById('drawing-canvas');
+        ctx = canvas.getContext('2d');
+        courtContainer = document.getElementById('basketball-court');
+        objectsLayer = document.getElementById('objects-layer');
+
+        // Event Listeners for Interaction
+        courtContainer.addEventListener('mousedown', startInteraction);
+        // courtContainer.addEventListener('mousemove', handleInteraction); // Added dynamically
+        // courtContainer.addEventListener('mouseup', endInteraction); // Added dynamically
+        
+        // Touch Support
+        courtContainer.addEventListener('touchstart', (e) => {
+             e.preventDefault();
+             startInteraction(e.touches[0]);
+        });
+
+        resizeCanvas();
+    }
+
+    function resizeCanvas() {
+        const rect = courtContainer.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        renderFrame(); // Re-render current state
+    }
+
+    // --- DATA MANAGEMENT ---
+    function saveData() {
+        // Save current frame state first
+        saveCurrentFrameState();
+        
+        // Load existing global data to merge
+        let globalData = {};
+        try {
+            globalData = JSON.parse(localStorage.getItem(DATA_KEY)) || {};
+        } catch(e) { globalData = {}; }
+
+        // Update designer part
+        globalData.designer = {
+            sequence: playSequence,
+            currentIndex: currentFrameIndex
+        };
+        
+        localStorage.setItem(DATA_KEY, JSON.stringify(globalData));
+    }
+
+    function loadData() {
+        const dataStr = localStorage.getItem(DATA_KEY);
+        if (dataStr) {
+            const data = JSON.parse(dataStr);
+            if(data.designer && data.designer.sequence && data.designer.sequence.length > 0) {
+                playSequence = data.designer.sequence;
+                currentFrameIndex = data.designer.currentIndex || 0;
+            } else {
+                // Default Start
+                loadFormation('5out', true);
+            }
+        } else {
+            loadFormation('5out', true);
+        }
+        renderFrame();
+        updateSeqUI();
+    }
+
+    function showNotif(msg) {
+        const n = document.getElementById('notification');
+        n.innerText = msg; n.style.opacity = 1;
+        setTimeout(() => n.style.opacity = 0, 2000);
+    }
+
+    // --- TOOL & COLOR SELECTION ---
+    function setTool(tool) {
+        currentTool = tool;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById(`tool-${tool}`);
+        if(btn) btn.classList.add('active');
+        
+        // Cursor logic
+        if(tool === 'move') courtContainer.style.cursor = 'default';
+        else if(tool === 'eraser') courtContainer.style.cursor = 'not-allowed'; // approximation
+        else courtContainer.style.cursor = 'crosshair';
+        
+        showNotif(`Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
+    }
+
+    function setColor(color, el) {
+        currentColor = color;
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        if(el) el.classList.add('active');
+        showNotif(`Color set to ${color}`);
+    }
+
+    // --- INTERACTION HANDLING (DRAWING & CLICKING) ---
+    function getNormalizedCoords(e) {
+        const rect = courtContainer.getBoundingClientRect();
+        // Handle mouse or touch object
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+        
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        
+        return {
+            x: x, // Screen pixel x
+            y: y, // Screen pixel y
+            nx: (x / rect.width) * COURT_WIDTH, // Normalized x
+            ny: (y / rect.height) * COURT_HEIGHT // Normalized y
+        };
+    }
+
+    function startInteraction(e) {
+        // Prevent interaction with drag handles if clicking on object (handled by object listeners)
+        if(e.target.closest('.draggable-obj') && currentTool === 'move') return;
+
+        const pos = getNormalizedCoords(e);
+
+        // ERASER LOGIC
+        if (currentTool === 'eraser') {
+            // Check for objects near click
+            const objects = playSequence[currentFrameIndex].objects;
+            const rect = courtContainer.getBoundingClientRect();
+            
+            // Reverse loop to check top-most objects first
+            for(let i=objects.length-1; i>=0; i--) {
+                const obj = objects[i];
+                // Convert obj norm coords to pixels
+                const ox = (obj.x / COURT_WIDTH) * rect.width;
+                const oy = (obj.y / COURT_HEIGHT) * rect.height;
+                
+                // Distance check (approx 20px radius)
+                if(Math.hypot(pos.x - ox, pos.y - oy) < 25) {
+                    objects.splice(i, 1);
+                    renderFrame(); // Re-render
+                    saveData();
+                    showNotif("Object Erased");
+                    return;
+                }
+            }
+            
+            // If no object, check for paths (remove last path)
+            const paths = playSequence[currentFrameIndex].paths;
+            if(paths.length > 0) {
+                paths.pop();
+                renderFrame();
+                saveData();
+                showNotif("Last Line Erased");
+                return;
+            }
+            return;
+        }
+
+        // DRAWING LOGIC
+        if (['cut', 'dribble', 'pass'].includes(currentTool)) {
+            isDrawing = true;
+            
+            // Special colors for specific moves
+            let drawColor = currentColor;
+            if(currentTool === 'dribble') drawColor = '#2196f3'; // Blue
+            if(currentTool === 'pass') drawColor = '#ffeb3b';    // Yellow
+
+            currentPath = {
+                type: currentTool,
+                color: drawColor,
+                points: [{x: pos.nx, y: pos.ny}]
+            };
+            
+            playSequence[currentFrameIndex].paths.push(currentPath);
+            
+            // Attach move/up listeners
+            window.addEventListener('mousemove', handleDrawMove);
+            window.addEventListener('mouseup', handleDrawEnd);
+            window.addEventListener('touchmove', handleDrawMoveTouch, {passive: false});
+            window.addEventListener('touchend', handleDrawEnd);
+            
+            renderFrame();
+        } 
+        
+        // SCREEN LOGIC
+        else if (currentTool === 'screen') {
+            playSequence[currentFrameIndex].paths.push({
+                type: 'screen',
+                color: currentColor,
+                points: [{x: pos.nx, y: pos.ny}] // Single point for T-screen
+            });
+            renderFrame();
+            saveData();
+        }
+    }
+
+    function handleDrawMove(e) {
+        if(!isDrawing) return;
+        const pos = getNormalizedCoords(e);
+        currentPath.points.push({x: pos.nx, y: pos.ny});
+        renderFrame(); // Redraw canvas
+    }
+    
+    function handleDrawMoveTouch(e) {
+        e.preventDefault();
+        handleDrawMove(e.touches[0]);
+    }
+
+    function handleDrawEnd(e) {
+        isDrawing = false;
+        currentPath = null;
+        window.removeEventListener('mousemove', handleDrawMove);
+        window.removeEventListener('mouseup', handleDrawEnd);
+        window.removeEventListener('touchmove', handleDrawMoveTouch);
+        window.removeEventListener('touchend', handleDrawEnd);
+        saveData();
+    }
+
+    // --- OBJECT MANAGEMENT ---
+    function addObj(type) {
+        saveCurrentFrameState(); // Ensure current state is captured
+        const objects = playSequence[currentFrameIndex].objects;
+        
+        let obj = {
+            id: Date.now() + Math.random().toString(),
+            type: type,
+            x: COURT_WIDTH / 2,
+            y: COURT_HEIGHT / 2,
+            text: ''
+        };
+
+        if(type === 'player') {
+            const num = prompt("Player Number/Initial:", "1");
+            if(!num) return;
+            obj.text = num.substring(0,2);
+            obj.bg = 'var(--primary)';
+        } else if(type === 'opponent') {
+            obj.text = 'x';
+            obj.bg = 'var(--danger)';
+        } else if(type === 'ball') {
+            obj.text = '🏀';
+            obj.bg = 'transparent';
+        } else if(type === 'cone') {
+            obj.text = '▲';
+            obj.bg = 'transparent';
+            obj.color = 'var(--equity)';
+        } else if(type === 'text') {
+            const txt = prompt("Text Label:", "Screen");
+            if(!txt) return;
+            obj.text = txt;
+            obj.bg = 'white';
+            obj.color = 'black';
+            obj.isLabel = true;
+        }
+
+        objects.push(obj);
+        renderFrame();
+        saveData();
+    }
+
+    // --- RENDERING ---
+    function renderFrame() {
+        const frame = playSequence[currentFrameIndex];
+        if(!frame) return;
+
+        // 1. Draw Paths on Canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        (frame.paths || []).forEach(path => {
+            if(path.type === 'screen') {
+                drawScreen(path);
+                return;
+            }
+            if(!path.points || path.points.length < 2) return;
+
+            ctx.beginPath();
+            ctx.strokeStyle = path.color || 'white';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Dash Patterns
+            if(path.type === 'dribble') ctx.setLineDash([10, 5]); // Dash
+            else if(path.type === 'pass') ctx.setLineDash([2, 5]); // Dot
+            else ctx.setLineDash([]); // Solid (Cut)
+
+            // Draw line
+            const p0 = normToPx(path.points[0]);
+            ctx.moveTo(p0.x, p0.y);
+            
+            for(let i=1; i<path.points.length; i++) {
+                const p = normToPx(path.points[i]);
+                ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+
+            // Arrowhead at end
+            const end = normToPx(path.points[path.points.length-1]);
+            const prev = normToPx(path.points[Math.max(0, path.points.length-10)]); // Look back a bit for angle
+            drawArrowHead(ctx, prev.x, prev.y, end.x, end.y);
+            
+            ctx.setLineDash([]);
+        });
+
+        // 2. Render HTML Objects
+        objectsLayer.innerHTML = ''; // Clear DOM
+        const rect = courtContainer.getBoundingClientRect(); // Get current size
+
+        (frame.objects || []).forEach(obj => {
+            const el = document.createElement('div');
+            el.className = 'draggable-obj';
+            
+            // Positioning (Percent based for responsiveness)
+            el.style.left = (obj.x / COURT_WIDTH * 100) + '%';
+            el.style.top = (obj.y / COURT_HEIGHT * 100) + '%';
+            
+            // Content & Styling
+            el.innerHTML = obj.text;
+            
+            if(obj.type === 'player' || obj.type === 'opponent') {
+                el.classList.add('drag-player');
+                el.style.backgroundColor = obj.bg;
+            } else if(obj.type === 'ball') {
+                el.classList.add('drag-ball');
+            } else if(obj.type === 'cone') {
+                el.classList.add('drag-cone');
+                el.innerHTML = ''; // Cone is CSS shape
+            } else if(obj.isLabel) {
+                el.style.background = 'white';
+                el.style.padding = '2px 5px';
+                el.style.border = '1px solid #333';
+                el.style.fontSize = '0.8rem';
+                el.style.borderRadius = '3px';
+                el.style.width = 'auto';
+                el.style.height = 'auto';
+            }
+
+            // Attach Drag Logic
+            makeDraggable(el, obj);
+            
+            objectsLayer.appendChild(el);
+        });
+    }
+
+    function normToPx(pt) {
+        const rect = courtContainer.getBoundingClientRect();
+        return {
+            x: (pt.x / COURT_WIDTH) * canvas.width,
+            y: (pt.y / COURT_HEIGHT) * canvas.height
+        };
+    }
+
+    function drawScreen(path) {
+        const pt = normToPx(path.points[0]);
+        ctx.beginPath();
+        ctx.strokeStyle = path.color || 'white';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([]);
+        // Draw T shape or X shape. Let's do a perpendicular line
+        // Since we don't have angle, we draw a generic T
+        ctx.moveTo(pt.x - 10, pt.y);
+        ctx.lineTo(pt.x + 10, pt.y); // Bar
+        ctx.moveTo(pt.x, pt.y - 10);
+        ctx.lineTo(pt.x, pt.y + 10); // Stem
+        ctx.stroke();
+    }
+
+    function drawArrowHead(ctx, fromX, fromY, toX, toY) {
+        const headlen = 10;
+        const angle = Math.atan2(toY - fromY, toX - fromX);
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.stroke();
+    }
+
+    // --- DRAG LOGIC ---
+    function makeDraggable(el, dataObj) {
+        let isDrag = false;
+        let startX, startY;
+
+        const onDown = (e) => {
+            if(currentTool !== 'move') return;
+            e.preventDefault();
+            e.stopPropagation(); // Stop from triggering draw/place
+            isDrag = true;
+            
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            
+            startX = clientX;
+            startY = clientY;
+            
+            el.style.cursor = 'grabbing';
+            
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+            window.addEventListener('touchmove', onMove, {passive:false});
+            window.addEventListener('touchend', onUp);
+        };
+
+        const onMove = (e) => {
+            if(!isDrag) return;
+            e.preventDefault();
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            
+            const rect = courtContainer.getBoundingClientRect();
+            let x = clientX - rect.left;
+            let y = clientY - rect.top;
+            
+            // Constrain
+            x = Math.max(0, Math.min(x, rect.width));
+            y = Math.max(0, Math.min(y, rect.height));
+            
+            // Update visual immediately
+            el.style.left = (x / rect.width * 100) + '%';
+            el.style.top = (y / rect.height * 100) + '%';
+            
+            // Update data model
+            dataObj.x = (x / rect.width) * COURT_WIDTH;
+            dataObj.y = (y / rect.height) * COURT_HEIGHT;
+        };
+
+        const onUp = () => {
+            isDrag = false;
+            el.style.cursor = 'grab';
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+            window.removeEventListener('touchmove', onMove);
+            window.removeEventListener('touchend', onUp);
+            saveData();
+        };
+
+        el.addEventListener('mousedown', onDown);
+        el.addEventListener('touchstart', onDown);
+    }
+
+    // --- SEQUENCE MANAGEMENT ---
+    function saveCurrentFrameState() {
+        // Objects are updated live in drag, paths are updated live in draw.
+        // This function confirms the structure exists.
+        if(!playSequence[currentFrameIndex]) {
+            playSequence[currentFrameIndex] = { objects: [], paths: [] };
+        }
+    }
+
+    function addFrame() {
+        saveCurrentFrameState();
+        // Clone objects from current frame for continuity
+        const currentFrame = playSequence[currentFrameIndex];
+        const nextObjs = JSON.parse(JSON.stringify(currentFrame.objects));
+        
+        // Insert new frame
+        playSequence.splice(currentFrameIndex + 1, 0, {
+            objects: nextObjs,
+            paths: [] // Clear paths for new movement
+        });
+        
+        currentFrameIndex++;
+        updateSeqUI();
+        renderFrame();
+        saveData();
+        showNotif("New Frame Added");
+    }
+
+    function deleteFrame() {
+        if(playSequence.length <= 1) {
+            alert("Cannot delete the only frame.");
+            return;
+        }
+        if(confirm("Delete this frame?")) {
+            playSequence.splice(currentFrameIndex, 1);
+            if(currentFrameIndex >= playSequence.length) currentFrameIndex = playSequence.length - 1;
+            updateSeqUI();
+            renderFrame();
+            saveData();
+        }
+    }
+
+    function nextFrame() {
+        if(currentFrameIndex < playSequence.length - 1) {
+            currentFrameIndex++;
+            updateSeqUI();
+            renderFrame();
+        }
+    }
+
+    function prevFrame() {
+        if(currentFrameIndex > 0) {
+            currentFrameIndex--;
+            updateSeqUI();
+            renderFrame();
+        }
+    }
+
+    function updateSeqUI() {
+        document.getElementById('seq-step-display').innerText = `Frame ${currentFrameIndex+1} / ${playSequence.length}`;
+    }
+
+    function playAnimation() {
+        if(isPlaying) {
+            clearInterval(animInterval);
+            isPlaying = false;
+            document.getElementById('play-anim-btn').innerText = "▶ Play";
+            return;
+        }
+        
+        isPlaying = true;
+        document.getElementById('play-anim-btn').innerText = "◼ Stop";
+        let idx = 0;
+        
+        // Start from beginning or current? Let's start from 0 for a full play review
+        currentFrameIndex = 0;
+        renderFrame();
+        updateSeqUI();
+
+        animInterval = setInterval(() => {
+            if(currentFrameIndex < playSequence.length - 1) {
+                currentFrameIndex++;
+                renderFrame();
+                updateSeqUI();
+            } else {
+                // Loop or Stop? Let's stop at end
+                clearInterval(animInterval);
+                isPlaying = false;
+                document.getElementById('play-anim-btn').innerText = "▶ Play";
+                // setTimeout(() => { currentFrameIndex = 0; renderFrame(); updateSeqUI(); }, 1000); // Optional reset
+            }
+        }, 1000); // 1 second per frame
+    }
+
+    function clearCanvas() {
+        if(confirm("Clear this frame? Objects and lines will be removed.")) {
+            playSequence[currentFrameIndex] = { objects: [], paths: [] };
+            renderFrame();
+            saveData();
+        }
+    }
+
+    // --- FORMATIONS & PRESETS ---
+    function loadFormation(type, silent=false) {
+        if(!silent && !confirm("Load formation? Current frame will be overwritten.")) return;
+        
+        const centerX = COURT_WIDTH/2;
+        const topY = 400; 
+        
+        // Define objects based on type
+        let objs = [];
+        const mkObj = (t, txt, x, y, bg) => ({
+            id: Date.now()+Math.random(), type: t, text: txt, x: x, y: y, bg: bg || (t==='player'?'var(--primary)':'var(--danger)')
+        });
+
+        if(type === 'man' || type === '5out') {
+            objs = [
+                mkObj('player','1', 250, 430),
+                mkObj('player','2', 450, 300),
+                mkObj('player','3', 50, 300),
+                mkObj('player','4', 420, 100),
+                mkObj('player','5', 80, 100),
+                mkObj('ball','🏀', 250, 430)
+            ];
+        } else if(type === '23') { // 2-3 Zone
+            objs = [
+                mkObj('opponent','x1', 180, 350),
+                mkObj('opponent','x2', 320, 350),
+                mkObj('opponent','x3', 80, 100),
+                mkObj('opponent','x4', 250, 100),
+                mkObj('opponent','x5', 420, 100)
+            ];
+        } else if(type === '32') { // 3-2 Zone
+            objs = [
+                mkObj('opponent','x1', 250, 380),
+                mkObj('opponent','x2', 100, 300),
+                mkObj('opponent','x3', 400, 300),
+                mkObj('opponent','x4', 150, 100),
+                mkObj('opponent','x5', 350, 100)
+            ];
+        } else if(type === '4out') {
+            objs = [
+                mkObj('player','1', 300, 430),
+                mkObj('player','2', 450, 250),
+                mkObj('player','3', 50, 250),
+                mkObj('player','4', 150, 430),
+                mkObj('player','5', 400, 80), // Post
+                mkObj('ball','🏀', 300, 430)
+            ];
+        }
+
+        playSequence = [{ objects: objs, paths: [] }];
+        currentFrameIndex = 0;
+        renderFrame();
+        updateSeqUI();
+        saveData();
+    }
+
+    // --- PRESETS (East-West adjusted where requested, but kept N-S logic for this court image)
+    const PRESETS = {
+        horns: [
+            {objects: [
+                {type:'player',text:'1',x:250,y:400,bg:'var(--primary)'},
+                {type:'player',text:'2',x:50,y:50,bg:'var(--primary)'}, // corner
+                {type:'player',text:'3',x:450,y:50,bg:'var(--primary)'}, // corner
+                {type:'player',text:'4',x:180,y:300,bg:'var(--primary)'}, // high post
+                {type:'player',text:'5',x:320,y:300,bg:'var(--primary)'}, // high post
+                {type:'ball',text:'🏀',x:250,y:400}
+            ], paths: []},
+            {objects: [ /* Frame 2 logic would go here in a real expanded system */ ], paths: []}
+        ],
+        blitz: [ // Side out (simulated)
+            {objects: [
+                {type:'player',text:'1',x:480,y:250,bg:'var(--primary)'}, // Inbounder
+                {type:'player',text:'2',x:250,y:250,bg:'var(--primary)'},
+                {type:'player',text:'3',x:250,y:100,bg:'var(--primary)'},
+                {type:'player',text:'4',x:250,y:350,bg:'var(--primary)'},
+                {type:'player',text:'5',x:100,y:250,bg:'var(--primary)'},
+                {type:'ball',text:'🏀',x:480,y:250}
+            ], paths: []}
+        ],
+        flex: [
+            {objects: [
+                {type:'player',text:'1',x:250,y:430,bg:'var(--primary)'},
+                {type:'player',text:'2',x:450,y:300,bg:'var(--primary)'},
+                {type:'player',text:'3',x:50,y:300,bg:'var(--primary)'},
+                {type:'player',text:'4',x:80,y:50,bg:'var(--primary)'},
+                {type:'player',text:'5',x:420,y:50,bg:'var(--primary)'},
+                {type:'ball',text:'🏀',x:250,y:430}
+            ], paths: []}
+        ],
+        shuffle: [
+            {objects: [
+                {type:'player',text:'1',x:350,y:350,bg:'var(--primary)'},
+                {type:'player',text:'2',x:150,y:350,bg:'var(--primary)'},
+                {type:'player',text:'3',x:50,y:100,bg:'var(--primary)'},
+                {type:'player',text:'4',x:450,y:100,bg:'var(--primary)'},
+                {type:'player',text:'5',x:250,y:100,bg:'var(--primary)'},
+                {type:'ball',text:'🏀',x:350,y:350}
+            ], paths: []}
+        ]
+    };
+
+    function loadPreset() {
+        const val = document.getElementById('preset-select').value;
+        if(!val) return;
+        
+        if(!confirm("Load Preset?")) return;
+        
+        const frames = PRESETS[val];
+        if(frames) {
+            // Deep copy to avoid reference issues
+            playSequence = JSON.parse(JSON.stringify(frames));
+            currentFrameIndex = 0;
+            renderFrame();
+            updateSeqUI();
+            saveData();
+            showNotif("Preset Loaded");
+        }
+    }
+
+    // --- IMPORT / EXPORT ---
+    function exportPlayJSON() {
+        const name = document.getElementById('play-save-name').value || 'MyPlay';
+        const data = {
+            name: name,
+            playSequence: playSequence
+        };
+        const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${name}.json`;
+        a.click();
+    }
+
+    function loadPlayJSON(input) {
+        const f = input.files[0];
+        if(!f) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if(data.playSequence) {
+                    playSequence = data.playSequence;
+                    currentFrameIndex = 0;
+                    renderFrame();
+                    updateSeqUI();
+                    saveData();
+                    showNotif("Play Loaded from File");
+                }
+            } catch(err) {
+                alert("Invalid File");
+            }
+        };
+        reader.readAsText(f);
+    }
+
+    // --- DONATE MODAL LOGIC ---
+    function openDonateModal() { document.getElementById('donate-modal').style.display = 'flex'; }
+    function closeDonateModal() { document.getElementById('donate-modal').style.display = 'none'; }
+
+</script>
+</body>
+</html>

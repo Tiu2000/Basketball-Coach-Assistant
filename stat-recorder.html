@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stat Recorder - TIU Ultimate Coaching Suite</title>
+    <style>
+        /* --- GLOBAL & THEME (Essential Shared Styles) --- */
+        :root {
+            --primary: #1a237e;     /* Deep Blue */
+            --accent: #ff6f00;      /* Basketball Orange */
+            --bg: #f0f2f5;
+            --success: #2e7d32;
+            --danger: #c62828;
+            --warning: #f57c00;
+            --equity: #0097a7;
+            --cashapp: #00D632;     /* Cash App Green */
+            --dark-panel: #222;
+        }
+        
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--dark-panel); /* Stats View Background */
+            color: white; 
+            margin: 0; 
+            padding: 0; 
+            min-height: 100vh; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- NAVIGATION --- */
+        .app-nav {
+            background: var(--primary);
+            display: flex;
+            justify-content: center;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); }
+        .nav-btn.active { color: white; border-bottom-color: var(--accent); background: rgba(255,255,255,0.1); }
+        /* Cash App Nav Button Style */
+        .nav-btn.donate-btn { color: var(--cashapp); }
+        .nav-btn.donate-btn:hover { color: #fff; text-shadow: 0 0 5px var(--cashapp); }
+
+        /* --- SHARED COMPONENTS --- */
+        .action-btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: 0.2s; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-orange { background: var(--accent); color: white; }
+        .btn-red { background: var(--danger); color: white; }
+        .btn-green { background: var(--success); color: white; }
+        .btn-gray { background: #6c757d; color: white; }
+        .btn-print { background: #555; color: white; }
+        
+        /* Notification Box */
+        #notification { position: fixed; top: 60px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
+
+        /* ========================================= */
+        /* TAB 2: STAT TRACKER STYLES */
+        /* ========================================= */
+        #stat-app-container { flex: 1; padding-bottom: 220px; } /* Main content pushes up for fixed controls */
+        
+        .st-header { 
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #222; 
+            border-bottom: 1px solid #444; 
+            flex-wrap: wrap;
+            max-width: 95%; /* WIDER */
+            margin: 0 auto;
+        }
+        
+        .st-score-box {
+             display: flex;
+             align-items: center;
+             margin-bottom: 10px;
+        }
+
+        .st-score-us { font-weight: bold; font-size: 1.5rem; color:var(--accent); }
+        .st-vs { color:#666; margin:0 5px; }
+        .st-guest-label { color:#aaa; font-size:0.8rem; }
+        .st-score-them { font-size:1.5rem; }
+
+        .st-opp-controls {
+            display: flex; gap: 5px; align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* WIDE GRID */
+        .st-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 10px; 
+            padding: 15px; 
+            max-width: 95%; /* WIDER */
+            margin: 0 auto;
+        }
+        .st-card { background: #333; padding: 15px; border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; position: relative;}
+        .st-card.selected { border-color: var(--accent); background: #444; }
+        .st-name { font-weight: bold; font-size: 1.1rem; display: block; margin-bottom: 5px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .st-detail { font-size: 0.9rem; color: #aaa; }
+        .st-num { position: absolute; top: 5px; left: 5px; font-size: 0.8rem; color: #777; font-weight: bold; }
+
+        .st-table-container { padding: 15px; overflow-x: auto; max-width: 95%; margin: 0 auto; }
+        .st-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; color: #ddd; }
+        .st-table th, .st-table td { padding: 10px; border-bottom: 1px solid #444; text-align: center; }
+        .st-table th { color: var(--accent); }
+        .st-table td:first-child { text-align: left; font-weight: bold; color: white; }
+
+        /* STAT CONTROLS (Fixed Bottom Bar) */
+        .st-controls { position: fixed; bottom: 0; left: 0; width: 100%; background: #222; padding: 15px; border-top: 1px solid #444; z-index: 100; }
+        .st-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; max-width: 95%; margin: 0 auto 10px auto; }
+        .st-btn { padding: 15px 5px; border: none; border-radius: 5px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer; position: relative; }
+        .st-btn:active { transform: scale(0.95); }
+        .kbd-hint { position: absolute; top: 2px; right: 4px; font-size: 0.6rem; color: rgba(255,255,255,0.5); font-family: monospace; }
+        
+        /* Stat Button Colors */
+        .sb-1 { background-color: #6c757d; }
+        .sb-2 { background-color: var(--accent); }
+        .sb-3 { background-color: #d35400; }
+        .sb-reb { background-color: #28a745; }
+        .sb-ast { background-color: #17a2b8; }
+        .sb-stl { background-color: #6610f2; }
+        .sb-blk { background-color: #e83e8c; }
+        .sb-to { background-color: #dc3545; }
+        .sb-foul { background-color: #343a40; border: 1px solid #555; }
+        .sb-miss { background-color: #444; color: #aaa; font-size: 0.8rem; }
+
+        /* MODAL STYLES */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; color: #333; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .cash-app-btn {
+            background-color: var(--cashapp);
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 12px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px 0;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .cash-app-btn:hover { transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+
+        /* ========================================= */
+        /* SHOT CHART STYLES (NORTH-SOUTH)           */
+        /* ========================================= */
+        #shot-chart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
+        
+        #shot-chart-container { 
+            position: relative; 
+            width: 90%; 
+            max-width: 500px; 
+            aspect-ratio: 50/47; 
+            background: #d2a679; 
+            border: 4px solid white; 
+            cursor: crosshair; 
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 500 470' xmlns='http://www.w3.org/2000/svg'%3E%3C!-- Court Floor --%3E%3Crect width='500' height='470' fill='%23d2a679'/%3E%3C!-- Lines --%3E%3Cg fill='none' stroke='white' stroke-width='4'%3E%3C!-- Lane --%3E%3Crect x='170' y='0' width='160' height='190'/%3E%3C!-- Free Throw Circle --%3E%3Ccircle cx='250' cy='190' r='60'/%3E%3C!-- Hoop Backboard --%3E%3Cline x1='220' y1='40' x2='280' y2='40' stroke-width='4'/%3E%3Ccircle cx='250' cy='52.5' r='7.5' stroke-width='2'/%3E%3C!-- 3 Point Line --%3E%3Cpath d='M 30 0 L 30 140 Q 30 140 30 140 A 237.5 237.5 0 0 0 470 140 L 470 0'/%3E%3C!-- Center Court Arc --%3E%3Cpath d='M 190 470 A 60 60 0 0 1 310 470' stroke-width='4'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: cover;
+        }
+        
+        .shot-marker { 
+            position: absolute; 
+            width: 24px; 
+            height: 24px; 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%); 
+            border: 2px solid white; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+            pointer-events: none;
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            font-size: 0.75rem; 
+            color: white; 
+            font-weight: bold; 
+            z-index: 10;
+        }
+        .shot-make { background-color: var(--success); }
+        .shot-miss { background-color: var(--danger); opacity: 0.8; }
+        
+        .shot-name-label {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 0.6rem;
+            padding: 1px 3px;
+            border-radius: 3px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            .st-controls, .st-grid, .st-header, #notification, #shot-chart-modal { display: none !important; }
+            body { background: white; color: black; }
+            .st-table { color: black; width: 100%; }
+            .st-table th, .st-table td { color: black; border-color: #333; }
+            .st-table td:first-child { color: black; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="app-nav">
+        <a href="rotation-tracker.html" class="nav-btn">Rotation & Time</a>
+        <button class="nav-btn active">Stat Recorder</button>
+        <a href="play-designer.html" class="nav-btn">Play Designer</a>
+        <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
+    </nav>
+    
+    <div id="notification">Action Recorded</div>
+
+    <div id="stat-app-container">
+        <div class="st-header">
+             <div class="st-score-box">
+                 <span class="st-score-us" id="st-score-us">0</span> 
+                 <span class="st-vs">-</span> 
+                 <span class="st-guest-label">GUEST</span> 
+                 <strong class="st-score-them" id="st-score-them">0</strong>
+             </div>
+             
+             <div class="st-opp-controls">
+                 <span style="color:#aaa; font-size:0.9rem; margin-right:5px;">Opponent Score:</span>
+                 <button class="action-btn btn-gray" style="padding:4px 8px; font-size:0.8rem;" onclick="addOpponentScore(1)">+1</button>
+                 <button class="action-btn btn-gray" style="padding:4px 8px; font-size:0.8rem;" onclick="addOpponentScore(2)">+2</button>
+                 <button class="action-btn btn-gray" style="padding:4px 8px; font-size:0.8rem;" onclick="addOpponentScore(3)">+3</button>
+             </div>
+             
+             <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="color:white; margin:0;">Home Box Score</h3>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap: wrap; justify-content: flex-end;">
+                    <label style="color:white; font-size:0.9rem;"><input type="checkbox" id="adv-stats-toggle" onchange="renderStats()"> Show Advanced Stats</label>
+                    <button class="action-btn btn-blue" onclick="toggleShotChartVis()">View Shot Chart</button>
+                    <button class="action-btn btn-green" onclick="copyGameSummary()">📋 Copy</button>
+                    <button class="action-btn btn-print" onclick="window.print()">🖨️ Print</button>
+                    <button class="action-btn btn-orange" onclick="exportStatsCSV()">⬇️ Export CSV</button>
+                    <button class="action-btn btn-gray" onclick="undoStat()">Undo</button>
+                </div>
+             </div>
+        </div>
+        
+        <div class="st-grid" id="st-player-grid"></div>
+
+        <div class="st-table-container">
+            <table class="st-table" id="stat-table"></table>
+        </div>
+    </div>
+    
+    <div class="st-controls">
+         <div style="text-align:center; margin-bottom:5px; color:#aaa; font-size:0.8rem;">Select a player above, then tap a stat</div>
+         <div class="st-buttons">
+             <button class="st-btn sb-1" onclick="addStat('1pt')">1 PT<span class="kbd-hint">1</span></button>
+             <button class="st-btn sb-2" onclick="addStat('2pt')">2 PTS<span class="kbd-hint">2</span></button>
+             <button class="st-btn sb-3" onclick="addStat('3pt')">3 PTS<span class="kbd-hint">3</span></button>
+             <button class="st-btn sb-foul" onclick="addStat('pf')">FOUL<span class="kbd-hint">F</span></button>
+             
+             <button class="st-btn sb-miss" onclick="addStat('m1')">Miss 1</button>
+             <button class="st-btn sb-miss" onclick="addStat('m2')">Miss 2</button>
+             <button class="st-btn sb-miss" onclick="addStat('m3')">Miss 3</button>
+             <button class="st-btn sb-to" onclick="addStat('to')">TO<span class="kbd-hint">T</span></button>
+             
+             <button class="st-btn sb-reb" onclick="addStat('reb')">REB<span class="kbd-hint">R</span></button>
+             <button class="st-btn sb-ast" onclick="addStat('ast')">AST<span class="kbd-hint">A</span></button>
+             <button class="st-btn sb-stl" onclick="addStat('stl')">STL<span class="kbd-hint">S</span></button>
+             <button class="st-btn sb-blk" onclick="addStat('blk')">BLK<span class="kbd-hint">B</span></button>
+         </div>
+    </div>
+    
+    <div id="shot-chart-modal">
+        <h3 style="color:white; margin-bottom:10px;" id="sc-modal-title">Shot Location</h3>
+        <div id="shot-chart-container"></div>
+        <button class="action-btn btn-red" style="margin-top:20px;" onclick="document.getElementById('shot-chart-modal').style.display='none'">Close</button>
+    </div>
+
+    <div id="donate-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
+            <p>If you find this tool useful, consider supporting future development!</p>
+            
+            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-app-btn">
+                $ Donate via Cash App
+            </a>
+            
+            <p style="font-size:0.8rem; color:#666;">(Links open in a new tab)</p>
+            <button class="action-btn btn-gray" onclick="closeDonateModal()">Close</button>
+        </div>
+    </div>
+
+<script>
+    const STORE_KEY = 'tiu_ultimate_suite_v2'; 
+    
+    let trPlayers = [];       
+    let stPlayers = [];       
+    let gameHistory = [];     
+    let opponentScore = 0;
+    let homeScore = 0;
+    let selectedStatPlayerId = null; 
+    
+    let shotChartData = [];
+    let isShotChartOpen = false;
+
+    function getStatPlayerById(id) { return stPlayers.find(p => p.id == id); }
+    function showNotif(msg) { const n = document.getElementById('notification'); n.innerText = msg; n.style.opacity = 1; setTimeout(() => n.style.opacity = 0, 2000); }
+
+    function loadData() {
+        const saved = localStorage.getItem(STORE_KEY);
+        if(saved) {
+            const data = JSON.parse(saved);
+            trPlayers = data.trPlayers || [];
+            stPlayers = data.stPlayers || [];
+            gameHistory = data.gameHistory || data.statHistory || []; 
+            opponentScore = data.opponentScore || 0;
+        }
+        stPlayers = trPlayers.map(trP => {
+            let stP = stPlayers.find(sP => sP.id === trP.id);
+            if (!stP) { stP = { id: trP.id, name: trP.name, stats: {} }; }
+            stP.name = trP.name; 
+            stP.stats = stP.stats || {};
+            stP.stats = { ft: stP.stats.ft || 0, fg: stP.stats.fg || 0, zp: stP.stats.zp || 0, reb: stP.stats.reb || 0, ast: stP.stats.ast || 0, stl: stP.stats.stl || 0, blk: stP.stats.blk || 0, to: stP.stats.to || 0, pf: stP.stats.pf || 0, m1: stP.stats.m1 || 0, m2: stP.stats.m2 || 0, m3: stP.stats.m3 || 0 };
+            stP.plusMinus = stP.plusMinus || 0;
+            return stP;
+        });
+        homeScore = stPlayers.reduce((sum, p) => sum + (p.stats.ft * 1) + (p.stats.fg * 2) + (p.stats.zp * 3), 0);
+        shotChartData = JSON.parse(localStorage.getItem('TIU_SHOT_CHART_DATA')) || [];
+    }
+
+    function saveData() {
+        const data = { trPlayers, stPlayers, gameHistory, opponentScore, currentQuarter: 1, gameSeconds: 480, statHistory: gameHistory };
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
+        localStorage.setItem('TIU_SHOT_CHART_DATA', JSON.stringify(shotChartData));
+    }
+
+    function renderStats() {
+        const grid = document.getElementById('st-player-grid'); const table = document.getElementById('stat-table'); grid.innerHTML = '';
+        stPlayers.forEach(p => {
+            const card = document.createElement('div'); card.className = `st-card ${p.id == selectedStatPlayerId ? 'selected' : ''}`; card.setAttribute('onclick', `selectPlayer('${p.id}')`);
+            const pts = (p.stats.ft * 1) + (p.stats.fg * 2) + (p.stats.zp * 3);
+            const fga = p.stats.fg + p.stats.zp + p.stats.m2 + p.stats.m3; const fgm = p.stats.fg + p.stats.zp;
+            const fta = p.stats.ft + p.stats.m1; const ftm = p.stats.ft;
+            card.innerHTML = `<span class="st-num">${pts} PTS</span><span class="st-name">${p.name}</span><span class="st-detail">${fgm}-${fga} FG | ${ftm}-${fta} FT</span>`;
+            grid.appendChild(card);
+        });
+        let advStats = document.getElementById('adv-stats-toggle')?.checked || false;
+        let header = '<tr><th>Player</th><th>PTS</th><th>FG/A</th><th>3P/A</th><th>FT/A</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th>';
+        if(advStats) header += '<th>+/-</th>'; header += '</tr>';
+        let rows = stPlayers.map(p => {
+            const pts = (p.stats.ft * 1) + (p.stats.fg * 2) + (p.stats.zp * 3);
+            const fga = p.stats.fg + p.stats.zp + p.stats.m2 + p.stats.m3; const fgm = p.stats.fg + p.stats.zp;
+            const fta = p.stats.ft + p.stats.m1; const ftm = p.stats.ft;
+            const threePA = p.stats.zp + p.stats.m3; const threePM = p.stats.zp;
+            let row = `<tr><td>${p.name}</td><td>${pts}</td><td>${fgm}-${fga}</td><td>${threePM}-${threePA}</td><td>${ftm}-${fta}</td><td>${p.stats.reb}</td><td>${p.stats.ast}</td><td>${p.stats.stl}</td><td>${p.stats.blk}</td><td>${p.stats.to}</td><td>${p.stats.pf}</td>`;
+            if(advStats) row += `<td style="color: ${p.plusMinus > 0 ? 'var(--success)' : (p.plusMinus < 0 ? 'var(--danger)' : 'white')}">${p.plusMinus !== undefined ? (p.plusMinus > 0 ? '+' : '') + p.plusMinus : 0}</td>`;
+            row += '</tr>'; return row;
+        }).join('');
+        table.innerHTML = header + rows;
+        document.getElementById('st-score-us').textContent = homeScore;
+        document.getElementById('st-score-them').textContent = opponentScore;
+    }
+    
+    function selectPlayer(id) { selectedStatPlayerId = id; renderStats(); const p = getStatPlayerById(id); if(p) showNotif(`Selected: ${p.name}`); }
+
+    function addStat(statType) {
+        if (!selectedStatPlayerId) { alert("Please select a player first."); return; }
+        const player = getStatPlayerById(selectedStatPlayerId); if (!player) return;
+        gameHistory.push({ id: player.id, stat: statType, ptsBefore: homeScore, oppBefore: opponentScore });
+        switch (statType) {
+            case '1pt': player.stats.ft++; homeScore += 1; player.plusMinus++; break;
+            case '2pt': player.stats.fg++; homeScore += 2; player.plusMinus += 2; break;
+            case '3pt': player.stats.zp++; homeScore += 3; player.plusMinus += 3; break;
+            case 'm1': player.stats.m1++; break; case 'm2': player.stats.m2++; break; case 'm3': player.stats.m3++; break;
+            case 'reb': player.stats.reb++; break; case 'ast': player.stats.ast++; break;
+            case 'stl': player.stats.stl++; break; case 'blk': player.stats.blk++; break;
+            case 'to': player.stats.to++; break; case 'pf': player.stats.pf++; break;
+            default: return;
+        }
+        if (statType === '2pt' || statType === '3pt' || statType === 'm2' || statType === 'm3') { openShotChartModal(player, statType); } 
+        else { saveData(); renderStats(); showNotif(`${player.name} +1 ${statType.toUpperCase()}`); }
+    }
+    
+    function addOpponentScore(points) {
+        opponentScore += points;
+        gameHistory.push({ id: 'opp', stat: `opp_pts_${points}`, ptsBefore: homeScore, oppBefore: opponentScore - points });
+        trPlayers.forEach(p => { if(p.isOnCourt) { const st = stPlayers.find(s => s.id === p.id); if(st) st.plusMinus = (st.plusMinus || 0) - points; } });
+        saveData(); renderStats(); showNotif(`Guest Score: +${points}`);
+    }
+
+    function undoStat() {
+        if (gameHistory.length === 0) { alert("Nothing to undo."); return; }
+        const lastAction = gameHistory.pop(); const player = getStatPlayerById(lastAction.id);
+        homeScore = lastAction.ptsBefore; opponentScore = lastAction.oppBefore;
+        if (player) {
+            const statType = lastAction.stat;
+            switch (statType) {
+                case '1pt': player.stats.ft--; player.plusMinus--; break;
+                case '2pt': player.stats.fg--; player.plusMinus -= 2; break;
+                case '3pt': player.stats.zp--; player.plusMinus -= 3; break;
+                case 'm1': player.stats.m1--; break; case 'm2': player.stats.m2--; break; case 'm3': player.stats.m3--; break;
+                case 'reb': player.stats.reb--; break; case 'ast': player.stats.ast--; break;
+                case 'stl': player.stats.stl--; break; case 'blk': player.stats.blk--; break;
+                case 'to': player.stats.to--; break; case 'pf': player.stats.pf--; break;
+            }
+            if (['2pt', '3pt', 'm2', 'm3'].includes(statType) && shotChartData.length > 0) { shotChartData.pop(); }
+        } else if (lastAction.id === 'opp') {
+             const points = parseInt(lastAction.stat.split('_').pop());
+             trPlayers.forEach(p => { if(p.isOnCourt) { const st = stPlayers.find(s => s.id === p.id); if(st) st.plusMinus = (st.plusMinus || 0) + points; } });
+        }
+        saveData(); renderStats(); showNotif(`Undo: Reverted last action.`);
+    }
+
+    function openShotChartModal(player, statType) {
+        isShotChartOpen = true; document.getElementById('sc-modal-title').textContent = `${player.name}: Select Shot Location`;
+        const modal = document.getElementById('shot-chart-modal'); modal.style.display = 'flex';
+        const court = document.getElementById('shot-chart-container'); court.onclick = (e) => recordShot(e, player.id, statType);
+    }
+    
+    function recordShot(e, playerId, statType) {
+        if (!isShotChartOpen) return; isShotChartOpen = false;
+        const court = document.getElementById('shot-chart-container'); const rect = court.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 500; const y = ((e.clientY - rect.top) / rect.height) * 470;
+        const isMake = statType === '2pt' || statType === '3pt' || statType === '1pt';
+        shotChartData.push({ playerId, x, y, isMake, type: statType });
+        document.getElementById('shot-chart-modal').style.display = 'none'; court.onclick = null;
+        saveData(); renderStats(); const player = getStatPlayerById(playerId); showNotif(`${player.name} +1 ${statType.toUpperCase()} (Shot Recorded)`);
+    }
+
+    function toggleShotChartVis() {
+        const modal = document.getElementById('shot-chart-modal'); const container = document.getElementById('shot-chart-container'); container.innerHTML = '';
+        if (modal.style.display === 'flex') { modal.style.display = 'none'; } else {
+            shotChartData.forEach(shot => {
+                const marker = document.createElement('div'); marker.className = `shot-marker ${shot.isMake ? 'shot-make' : 'shot-miss'}`;
+                marker.style.left = `${(shot.x / 500) * 100}%`; marker.style.top = `${(shot.y / 470) * 100}%`;
+                const player = getStatPlayerById(shot.playerId); if (player) marker.innerHTML = `<div class="shot-name-label">${player.name.split(' ')[0]}</div>`;
+                container.appendChild(marker);
+            });
+            document.getElementById('sc-modal-title').textContent = `Full Game Shot Chart (${shotChartData.length} Shots)`; modal.style.display = 'flex';
+        }
+    }
+    
+    function exportStatsCSV() {
+        let advStats = document.getElementById('adv-stats-toggle')?.checked || false;
+        let csv = "Name,PTS,FG_M,FG_A,3P_M,3P_A,FT_M,FT_A,REB,AST,STL,BLK,TO,PF"; if(advStats) csv += ",PlusMinus"; csv += "\n";
+        stPlayers.forEach(p => {
+            const pts = (p.stats.ft * 1) + (p.stats.fg * 2) + (p.stats.zp * 3);
+            const fga = p.stats.fg + p.stats.zp + p.stats.m2 + p.stats.m3; const fgm = p.stats.fg + p.stats.zp;
+            const fta = p.stats.ft + p.stats.m1; const ftm = p.stats.ft;
+            const threePA = p.stats.zp + p.stats.m3; const threePM = p.stats.zp;
+            let line = `"${p.name}",${pts},${fgm},${fga},${threePM},${threePA},${ftm},${fta},${p.stats.reb},${p.stats.ast},${p.stats.stl},${p.stats.blk},${p.stats.to},${p.stats.pf}`;
+            if(advStats) line += `,${p.plusMinus || 0}`; csv += line + "\n";
+        });
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", "TIU_Stats_Report.csv");
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); showNotif("Stats Exported to CSV");
+    }
+
+    function copyGameSummary() {
+        const table = document.getElementById('stat-table'); const header = table.rows[0].innerText;
+        const rows = Array.from(table.rows).slice(1).map(row => row.innerText.trim().replace(/\s\s+/g, ',')).join('\n');
+        let scoreLine = `SCORE: Home ${homeScore} - Guest ${opponentScore}\n`;
+        let summary = scoreLine + header.replace(/\s\s+/g, ',') + '\n' + rows;
+        navigator.clipboard.writeText(summary).then(() => { showNotif("Box score copied to clipboard!"); }).catch(err => { alert("Could not copy to clipboard."); });
+    }
+
+    // --- DONATE MODAL LOGIC ---
+    function openDonateModal() { document.getElementById('donate-modal').style.display = 'flex'; }
+    function closeDonateModal() { document.getElementById('donate-modal').style.display = 'none'; }
+
+    window.onload = () => { loadData(); renderStats(); };
+
+    document.addEventListener('keydown', (e) => {
+        if(isShotChartOpen || !selectedStatPlayerId) return;
+        const key = e.key.toLowerCase();
+        if (['1', '2', '3', 'f', 't', 'r', 'a', 's', 'b', 'z'].includes(key)) { e.preventDefault(); }
+        if(key === '1') addStat('1pt'); if(key === '2') addStat('2pt'); if(key === '3') addStat('3pt');
+        if(key === 'f') addStat('pf'); if(key === 't') addStat('to'); if(key === 'r') addStat('reb');
+        if(key === 'a') addStat('ast'); if(key === 's') addStat('stl'); if(key === 'b') addStat('blk');
+        if(key === 'z') undoStat();
+    });
+</script>
+</body>
+</html>
