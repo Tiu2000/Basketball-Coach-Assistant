@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIU Play Designer</title>
+    <title>Play Designer - TIU Coaching Suite</title>
     <style>
         /* --- GLOBAL & THEME --- */
         :root {
             --primary: #1a237e;     /* Deep Blue */
             --accent: #ff6f00;      /* Basketball Orange */
             --bg: #f0f2f5;
+            --court-floor: #e0bb86; /* Wood color */
+            --court-lines: #ffffff;
             --success: #2e7d32;
             --danger: #c62828;
-            --equity: #0097a7;
             --cashapp: #00D632;     /* Cash App Green */
-            --dark-panel: #222;
         }
         
         * { box-sizing: border-box; }
@@ -26,314 +26,254 @@
             padding: 0; 
             display: flex; 
             flex-direction: column; 
-            min-height: 100vh; 
-            overflow: hidden; /* Prevent body scroll in designer mode */
+            height: 100vh; 
+            overflow: hidden; 
         }
 
-        /* --- NAVIGATION --- */
+        /* --- UNIFIED TOP NAVIGATION --- */
         .app-nav {
             background: var(--primary);
             display: flex;
-            justify-content: center;
-            padding: 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            height: 50px; /* Fixed height for calculation */
+            justify-content: space-between;
             align-items: center;
-        }
-        .nav-btn {
-            background: transparent;
-            border: none;
-            color: rgba(255,255,255,0.6);
             padding: 0 20px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 4px solid transparent;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            height: 100%;
+            height: 50px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+            color: white;
         }
-        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); }
-        .nav-btn.active { color: white; border-bottom-color: var(--accent); background: rgba(255,255,255,0.1); }
-        /* Cash App Nav Button Style */
-        .nav-btn.donate-btn { color: var(--cashapp); }
-        .nav-btn.donate-btn:hover { color: #fff; text-shadow: 0 0 5px var(--cashapp); }
+        .nav-brand { font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .nav-links { display: flex; gap: 0; height: 100%; }
+        .nav-link {
+            display: flex; align-items: center; padding: 0 20px;
+            color: rgba(255,255,255,0.7); text-decoration: none;
+            font-weight: 500; height: 100%; transition: all 0.2s;
+            border-bottom: 4px solid transparent;
+        }
+        .nav-link:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-link.active { color: white; border-bottom: 4px solid var(--accent); background: rgba(0,0,0,0.1); }
 
-        /* --- SHARED COMPONENTS --- */
-        .action-btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: 0.2s; }
-        .btn-blue { background: var(--primary); color: white; }
-        .btn-orange { background: var(--accent); color: white; }
-        .btn-red { background: var(--danger); color: white; }
-        .btn-green { background: var(--success); color: white; }
-        .btn-gray { background: #6c757d; color: white; }
-        .btn-print { background: #555; color: white; }
-        
-        /* Notification Box */
-        #notification { position: fixed; top: 60px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
+        .nav-actions { display: flex; gap: 10px; align-items: center; }
+        .nav-btn-sm {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+            text-decoration: none; display: inline-flex; align-items: center;
+        }
+        .nav-btn-sm:hover { background: rgba(255,255,255,0.3); }
 
-        /* --- PLAY DESIGNER SPECIFIC STYLES (FULL SCREEN) --- */
+        /* CASH APP BUTTON STYLE */
+        .btn-cashapp {
+            background-color: var(--cashapp) !important;
+            color: white !important;
+            font-weight: bold;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .btn-cashapp:hover { filter: brightness(1.1); }
+
+        /* --- DESIGNER LAYOUT --- */
         .designer-container {
             display: grid;
-            grid-template-columns: 260px 1fr 260px; /* Fixed sidebars, fluid center */
+            grid-template-columns: 220px 1fr 220px; 
             gap: 15px;
-            padding: 10px;
-            width: 100vw; /* Full Viewport Width */
-            height: calc(100vh - 50px); /* Full Height minus nav */
-            overflow: hidden;
-            background: #ddd;
-        }
-        
-        @media (max-width: 1024px) {
-            .designer-container {
-                grid-template-columns: 220px 1fr 220px;
-            }
-        }
-        @media (max-width: 800px) {
-            .designer-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr auto;
-                height: auto;
-                overflow-y: auto;
-            }
-            body { overflow: auto; }
-            #court-wrapper { min-height: 400px; }
-            .tool-sidebar { max-height: 300px; }
-        }
-
-        .tool-sidebar {
-            background: white;
             padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            overflow-y: auto; /* Scroll internally if content is too long */
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            height: 100%;
-        }
-        
-        .court-area-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            height: 100%;
-            min-width: 0;
+            flex: 1;
+            overflow: hidden;
         }
 
+        /* --- SIDEBARS --- */
+        .tool-sidebar {
+            background: white; padding: 15px; border-radius: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            overflow-y: auto; display: flex; flex-direction: column; gap: 8px; height: 100%;
+        }
+        h3 { 
+            margin: 5px 0 10px 0; font-size: 0.85rem; text-transform: uppercase; 
+            color: #666; border-bottom: 2px solid #eee; padding-bottom: 5px; 
+        }
+
+        /* --- TOOL BUTTONS --- */
         .tool-btn {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 5px;
-            border: 1px solid #ddd;
-            background: #f8f9fa;
-            cursor: pointer;
-            text-align: left;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            transition: 0.2s;
+            width: 100%; padding: 8px 10px; border: 1px solid #ddd; background: #f8f9fa;
+            cursor: pointer; text-align: left; border-radius: 4px; font-size: 0.85rem; 
+            display: flex; align-items: center; gap: 8px; transition: all 0.1s;
         }
-        .tool-btn:hover { background: #e9ecef; }
-        .tool-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
+        .tool-btn:hover { background: #e9ecef; border-color: #bbb; }
+        .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         
-        /* Court Styles */
+        .action-row { display: flex; gap: 5px; }
+        .action-btn { flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 0.8rem; }
+        .btn-blue { background: var(--primary); }
+        .btn-orange { background: var(--accent); }
+        .btn-red { background: var(--danger); }
+        .btn-green { background: var(--success); }
+
+        /* --- COURT AREA --- */
+        .court-area-wrapper { 
+            display: flex; flex-direction: column; gap: 10px; height: 100%; 
+            align-items: center; justify-content: center; position: relative;
+        }
+
         #court-wrapper {
-            position: relative;
-            background: #333; /* Dark background for focus */
-            padding: 0;
-            border: 2px solid #333;
+            position: relative; 
+            background: #333; 
+            border: 4px solid #333; 
             border-radius: 4px;
-            flex-grow: 1; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 650px; 
+            aspect-ratio: 500/470; 
         }
         
         #basketball-court {
-            width: 100%;
-            height: 100%;
-            aspect-ratio: 500/470; 
-            /* Ensure it fits within the container without scrolling */
-            max-width: 100%;
-            max-height: 100%;
-            
-            background: #d2a679;
-            position: relative;
+            width: 100%; height: 100%;
+            position: relative; 
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-
-            /* Court Lines SVG */
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 500 470' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='500' height='470' fill='%23d2a679'/%3E%3Cg fill='none' stroke='white' stroke-width='4'%3E%3C!-- Lane --%3E%3Crect x='170' y='0' width='160' height='190'/%3E%3C!-- Free Throw Circle --%3E%3Ccircle cx='250' cy='190' r='60'/%3E%3C!-- Hoop Backboard --%3E%3Cline x1='220' y1='40' x2='280' y2='40'/%3E%3C!-- Hoop --%3E%3Ccircle cx='250' cy='52.5' r='7.5' stroke-width='2'/%3E%3C!-- 3 Point Line --%3E%3Cpath d='M 30 0 L 30 140 Q 30 140 30 140 A 237.5 237.5 0 0 0 470 140 L 470 0'/%3E%3C!-- Center Court Arc --%3E%3Cpath d='M 190 470 A 60 60 0 0 1 310 470'/%3E%3C/g%3E%3C/svg%3E");
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
+            background: var(--court-floor);
         }
         
-        #drawing-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 10;
-        }
+        canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        #objects-layer {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 20;
-            pointer-events: none; 
+        /* HTML Object Layer */
+        #objects-layer { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 10; pointer-events: none; 
         }
 
-        /* Draggable Objects */
+        /* --- OBJECT STYLES --- */
         .draggable-obj {
-            position: absolute;
-            cursor: grab;
-            user-select: none;
-            pointer-events: auto; 
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 35px; height: 35px;
-            transform: translate(-50%, -50%); 
+            position: absolute; cursor: grab; user-select: none; pointer-events: auto;
+            font-weight: bold; display: flex; justify-content: center; align-items: center;
+            transform: translate(-50%, -50%); transition: box-shadow 0.2s;
         }
-        .drag-player {
-            border-radius: 50%;
-            color: white;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            font-size: 0.9rem;
-        }
-        .drag-ball { font-size: 1.5rem; }
+        .draggable-obj:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.1); }
+        
+        .drag-player { width: 30px; height: 30px; border-radius: 50%; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); font-size: 0.9rem; }
+        .drag-ball { font-size: 1.4rem; }
         .drag-cone { 
             width: 0; height: 0; 
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 20px solid var(--accent);
-            background: transparent;
+            border-left: 10px solid transparent; border-right: 10px solid transparent; 
+            border-bottom: 20px solid var(--accent); 
+        }
+        .drag-screen {
+            font-family: sans-serif; font-size: 2rem; font-weight: 900; 
+            color: #333; text-shadow: 1px 1px 0px white;
+            cursor: move;
+        }
+        .drag-text {
+            background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 4px; 
+            border: 1px solid #333; font-size: 0.8rem; white-space: nowrap;
         }
 
-        /* Sequence Controls */
-        .seq-control-panel {
-            background: white;
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        /* --- CONTROLS --- */
+        .seq-control-panel { 
+            background: white; padding: 8px 15px; border-radius: 20px; 
+            display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            width: 100%; max-width: 600px; justify-content: space-between;
         }
-        .seq-display {
-            font-weight: bold;
-            font-size: 1.1rem;
-            color: var(--primary);
-            margin: 5px 0;
-            display: block;
-        }
-        .seq-row {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            margin-bottom: 5px;
+        .frame-indicator { font-weight: bold; color: var(--primary); font-family: monospace; font-size: 1.1rem; }
+        
+        .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #ddd; }
+        .color-dot.active { border-color: #333; transform: scale(1.15); }
+
+        #notification { 
+            position: fixed; top: 70px; right: 20px; background: #333; color: white; 
+            padding: 10px 20px; border-radius: 4px; opacity: 0; transition: opacity 0.3s; 
+            pointer-events: none; z-index: 2000; font-size: 0.9rem;
         }
 
-        /* Color Picker */
-        .color-picker-row { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
-        .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid #ddd; }
-        .color-dot.active { border-color: #333; transform: scale(1.15); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-
-        /* MODAL STYLES */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .cash-app-btn {
-            background-color: var(--cashapp);
-            color: white;
-            font-weight: bold;
-            font-size: 1.1rem;
-            padding: 12px 25px;
-            border-radius: 30px;
-            text-decoration: none;
-            display: inline-block;
-            margin: 15px 0;
-            border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
-        }
-        .cash-app-btn:hover { transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-
-        /* PRINT STYLES */
-        @media print {
-            .app-nav, .tool-sidebar, .seq-control-panel, #notification { display: none !important; }
-            .designer-container { display: block; padding: 0; height: auto; }
-            #court-wrapper { border: 1px solid black; background: white; height: 800px; page-break-inside: avoid; }
-            #basketball-court { border: none; box-shadow: none; }
-            body { background: white; overflow: visible; }
+        /* --- MODAL (POP OUT) STYLES --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .cash-tag { font-size: 1.5rem; font-weight: bold; color: var(--cashapp); margin: 15px 0; display: block; text-decoration: none; }
+        .cash-tag:hover { text-decoration: underline; }
+        
+        /* Mobile Adjustments */
+        @media (max-width: 900px) {
+            .designer-container { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; overflow-y: auto; }
+            .tool-sidebar { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .nav-brand span { display: none; }
         }
     </style>
 </head>
 <body>
 
     <nav class="app-nav">
-        <a href="rotation-tracker.html" class="nav-btn">Rotation & Time</a>
-        <a href="stat-recorder.html" class="nav-btn">Stat Recorder</a>
-        <button class="nav-btn active">Play Designer</button>
-        <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
+        <div class="nav-brand">
+            <span>🏀 TIU Suite</span>
+        </div>
+        <div class="nav-links">
+            <a href="stat-recorder.html" class="nav-link">Stats</a>
+            <a href="rotation-tracker.html" class="nav-link">Rotation</a>
+            <a href="play-designer.html" class="nav-link active">Plays</a>
+        </div>
+        <div class="nav-actions">
+            <button class="nav-btn-sm btn-cashapp" onclick="openDonateModal()">
+                $ Donate
+            </button>
+            
+            <button class="nav-btn-sm" onclick="exportPlayJSON()">Save</button>
+            <button class="nav-btn-sm" onclick="openImport()">Load</button>
+        </div>
     </nav>
     
     <div id="notification">Action Recorded</div>
 
+    <div id="donate-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
+            <p>If you find this tool helpful for your coaching, consider supporting via Cash App!</p>
+            
+            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-tag">$AnthonyTiu</a>
+            
+            <button class="action-btn btn-gray" onclick="closeDonateModal()" style="background:#666; color:white; margin-top:10px;">Close</button>
+        </div>
+    </div>
+
     <div class="designer-container">
         <div class="tool-sidebar">
-            <h3>Tools</h3>
-            <div class="color-picker-row">
-                <div class="color-dot active" style="background:white;" onclick="setColor('white', this)" title="White"></div>
-                <div class="color-dot" style="background:#ffeb3b;" onclick="setColor('#ffeb3b', this)" title="Yellow"></div>
-                <div class="color-dot" style="background:#f44336;" onclick="setColor('#f44336', this)" title="Red"></div>
-                <div class="color-dot" style="background:#2196f3;" onclick="setColor('#2196f3', this)" title="Blue"></div>
-                <div class="color-dot" style="background:#4caf50;" onclick="setColor('#4caf50', this)" title="Green"></div>
-                <div class="color-dot" style="background:#ff9800;" onclick="setColor('#ff9800', this)" title="Orange"></div>
-                <div class="color-dot" style="background:#9c27b0;" onclick="setColor('#9c27b0', this)" title="Purple"></div>
-                <div class="color-dot" style="background:#000;" onclick="setColor('#000', this)" title="Black"></div>
+            <div>
+                <h3>Objects</h3>
+                <div class="action-row">
+                    <button class="tool-btn" onclick="addObj('player')">👤 Atk</button>
+                    <button class="tool-btn" onclick="addObj('opponent')">🛡️ Def</button>
+                </div>
+                <div class="action-row" style="margin-top:5px;">
+                    <button class="tool-btn" onclick="addObj('ball')">🏀 Ball</button>
+                    <button class="tool-btn" onclick="addObj('cone')">⚠️ Cone</button>
+                </div>
+                <button class="tool-btn" style="margin-top:5px;" onclick="addObj('screen')">
+                    <strong>T</strong> &nbsp; Screen (Pick)
+                </button>
+                <button class="tool-btn" style="margin-top:5px;" onclick="addObj('text')">Aa Label</button>
             </div>
 
-            <button class="tool-btn active" id="tool-move" onclick="setTool('move')">✋ Move / Select</button>
-            
-            <h4>Drawing</h4>
-            <button class="tool-btn" id="tool-cut" onclick="setTool('cut')">➝ Cut (Solid)</button>
-            <button class="tool-btn" id="tool-dribble" onclick="setTool('dribble')">〰 Dribble (Dash)</button>
-            <button class="tool-btn" id="tool-pass" onclick="setTool('pass')">--- Pass (Dot)</button>
-            <button class="tool-btn" id="tool-screen" onclick="setTool('screen')">T Screen</button>
-            <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">⌫ Eraser</button>
+            <div>
+                <h3>Lines</h3>
+                <div class="color-picker">
+                    <div class="color-dot active" style="background:white;" onclick="setColor('white', this)"></div>
+                    <div class="color-dot" style="background:#ffeb3b;" onclick="setColor('#ffeb3b', this)"></div>
+                    <div class="color-dot" style="background:#f44336;" onclick="setColor('#f44336', this)"></div>
+                    <div class="color-dot" style="background:#2196f3;" onclick="setColor('#2196f3', this)"></div>
+                    <div class="color-dot" style="background:#000;" onclick="setColor('#000', this)"></div>
+                </div>
 
-            <h4>Objects</h4>
-            <button class="tool-btn" onclick="addObj('player')">👤 Add Player</button>
-            <button class="tool-btn" onclick="addObj('opponent')">🛡️ Add Defender</button>
-            <button class="tool-btn" onclick="addObj('ball')">🏀 Add Ball</button>
-            <button class="tool-btn" onclick="addObj('cone')">⚠️ Add Cone</button>
-            <button class="tool-btn" onclick="addObj('text')">Aa Add Text</button>
+                <button class="tool-btn active" id="tool-move" onclick="setTool('move')">✋ Move / Select</button>
+                <button class="tool-btn" id="tool-cut" onclick="setTool('cut')">➝ Cut (Solid)</button>
+                <button class="tool-btn" id="tool-dribble" onclick="setTool('dribble')">〰 Dribble (Dash)</button>
+                <button class="tool-btn" id="tool-pass" onclick="setTool('pass')">--- Pass (Dot)</button>
+                <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">⌫ Eraser</button>
+            </div>
             
-            <button class="tool-btn" style="color:red; margin-top:auto;" onclick="clearCanvas()">🗑 Clear All</button>
+            <button class="tool-btn btn-red" style="margin-top:auto; color: white;" onclick="clearCanvas()">🗑 Clear Frame</button>
         </div>
 
         <div class="court-area-wrapper">
             <div class="seq-control-panel">
-                <span class="seq-display" id="seq-step-display">Frame 1 / 1</span>
-                <div class="seq-row">
-                    <button class="action-btn" onclick="prevFrame()">◀ Prev</button>
-                    <button class="action-btn" id="play-anim-btn" onclick="playAnimation()">▶ Play</button>
-                    <button class="action-btn" onclick="nextFrame()">Next ▶</button>
-                </div>
-                <div class="seq-row">
-                    <button class="action-btn btn-blue" onclick="addFrame()">+ Add Frame</button>
-                    <button class="action-btn btn-red" onclick="deleteFrame()" style="font-size:0.8rem; padding:4px;">Delete Frame</button>
-                </div>
+                <button class="action-btn btn-blue" onclick="prevFrame()">◀</button>
+                <button class="action-btn btn-green" id="play-anim-btn" onclick="toggleAnimation()" style="flex:2">▶ Play Animation</button>
+                <button class="action-btn btn-blue" onclick="nextFrame()">▶</button>
+                <span class="frame-indicator" id="seq-step-display">1/1</span>
             </div>
 
             <div id="court-wrapper">
@@ -342,673 +282,434 @@
                     <div id="objects-layer"></div>
                 </div>
             </div>
+            
+            <div class="action-row" style="width:100%; max-width:600px;">
+                <button class="tool-btn" onclick="addFrame()">+ Add Next Step</button>
+                <button class="tool-btn" onclick="deleteFrame()" style="color:var(--danger)">Remove Step</button>
+            </div>
         </div>
 
         <div class="tool-sidebar">
-            <h3>Formation</h3>
-            <button class="tool-btn" onclick="loadFormation('man')">Man-to-Man</button>
-            <button class="tool-btn" onclick="loadFormation('23')">2-3 Zone</button>
-            <button class="tool-btn" onclick="loadFormation('32')">3-2 Zone</button>
-            <button class="tool-btn" onclick="loadFormation('5out')">5 Out</button>
-            <button class="tool-btn" onclick="loadFormation('4out')">4 Out 1 In</button>
+            <div>
+                <h3>Court Settings</h3>
+                <button class="tool-btn" onclick="toggleCourtType()">🔄 Toggle Half/Full</button>
+            </div>
             
-            <h3>Preset Plays</h3>
-            <select id="preset-select" class="tool-btn" style="padding:5px;">
-                <option value="">Select Play...</option>
-                <option value="horns">Horns Set (N-S)</option>
-                <option value="blitz">Side Out Blitz (E-W)</option>
-                <option value="flex">Flex Cut (Mix)</option>
-                <option value="shuffle">Shuffle Cut</option>
-            </select>
-            <button class="action-btn btn-orange" style="width:100%" onclick="loadPreset()">Load Preset</button>
+            <div>
+                <h3>Formations</h3>
+                <button class="tool-btn" onclick="loadFormation('man')">Man-to-Man</button>
+                <button class="tool-btn" onclick="loadFormation('23')">2-3 Zone</button>
+                <button class="tool-btn" onclick="loadFormation('32')">3-2 Zone</button>
+                <button class="tool-btn" onclick="loadFormation('5out')">5 Out</button>
+                <button class="tool-btn" onclick="loadFormation('4out')">4 Out 1 In</button>
+            </div>
+            
+            <div>
+                <h3>Quick Plays</h3>
+                <select id="preset-select" class="tool-btn" style="padding:5px; margin-bottom:5px;">
+                    <option value="">Select Play...</option>
+                    <option value="horns">Horns Set</option>
+                    <option value="box">Box Set</option>
+                </select>
+                <button class="action-btn btn-orange" style="width:100%" onclick="loadPreset()">Load Preset</button>
+            </div>
 
-            <h3>File</h3>
-            <div class="file-controls" style="display:flex; flex-direction:column; gap:5px;">
-                <button class="tool-btn btn-green" onclick="savePlay()">💾 Save Local</button>
-                <button class="tool-btn btn-blue" onclick="exportPlayJSON()">⬇️ Export JSON</button>
-                <button class="tool-btn" onclick="document.getElementById('imp-file').click()">📂 Import JSON</button>
+            <div style="margin-top:auto">
+                <h3>File</h3>
+                <input type="text" id="play-save-name" placeholder="Play Name" style="width:100%; margin-bottom:5px; padding:6px; border:1px solid #ddd; border-radius:4px;">
                 <input type="file" id="imp-file" style="display:none" onchange="loadPlayJSON(this)">
-                <button class="tool-btn" onclick="window.print()">🖨️ Print Play</button>
             </div>
         </div>
     </div>
 
-    <div id="donate-modal" class="modal">
-        <div class="modal-content">
-            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
-            <p>If you find this tool useful, consider supporting future development!</p>
-            
-            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-app-btn">
-                $ Donate via Cash App
-            </a>
-            
-            <p style="font-size:0.8rem; color:#666;">(Links open in a new tab)</p>
-            <button class="action-btn btn-gray" onclick="closeDonateModal()">Close</button>
-        </div>
-    </div>
-
 <script>
-    // =========================================================================
-    // CORE STATE
-    // =========================================================================
-    const DATA_KEY = 'tiu_ultimate_suite_v2'; 
-    const COURT_WIDTH = 500;  // Logical width for normalization
-    const COURT_HEIGHT = 470; // Logical height for normalization
+    // --- CONSTANTS & CONFIG ---
+    const DATA_KEY = 'tiu_play_v1';
+    const LOGICAL_WIDTH = 500;
+    const LOGICAL_HEIGHT = 470;
 
-    // Designer State
-    let canvas, ctx, courtContainer, objectsLayer;
-    let currentTool = 'move';
-    let currentColor = 'white';
-    
-    // Play Data Structure
-    let playSequence = [{ objects: [], paths: [] }];
-    let currentFrameIndex = 0;
-    
-    // Runtime State
+    // --- STATE ---
+    let state = {
+        courtType: 'half',
+        frames: [{ objects: [], paths: [] }],
+        currentFrame: 0,
+        settings: { lineColor: 'white', tool: 'move' }
+    };
+
     let isDrawing = false;
     let currentPath = null;
     let isPlaying = false;
     let animInterval = null;
 
+    // --- DOM ELEMENTS ---
+    const canvas = document.getElementById('drawing-canvas');
+    const ctx = canvas.getContext('2d');
+    const objectsLayer = document.getElementById('objects-layer');
+    const container = document.getElementById('basketball-court');
+
     // --- INITIALIZATION ---
     window.onload = () => {
-        initDesigner();
-        window.addEventListener('resize', () => { resizeCanvas(); });
-        loadData();
+        initCanvas();
+        loadLocalData();
+        window.addEventListener('resize', render);
     };
 
-    function initDesigner() {
-        canvas = document.getElementById('drawing-canvas');
-        ctx = canvas.getContext('2d');
-        courtContainer = document.getElementById('basketball-court');
-        objectsLayer = document.getElementById('objects-layer');
-
-        // Event Listeners for Interaction
-        courtContainer.addEventListener('mousedown', startInteraction);
-        courtContainer.addEventListener('contextmenu', removeObject); // Right-click handling
-        
-        // Touch Support
-        courtContainer.addEventListener('touchstart', (e) => {
-             e.preventDefault();
-             startInteraction(e.touches[0]);
-        });
-
-        resizeCanvas();
+    function initCanvas() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        container.addEventListener('mousedown', handleStart);
+        container.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e.touches[0]); }, {passive: false});
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', (e) => { if(isDrawing) e.preventDefault(); handleMove(e.touches[0]); }, {passive: false});
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
     }
 
-    function resizeCanvas() {
-        const rect = courtContainer.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        renderFrame(); // Re-render current state
+    // --- MODAL FUNCTIONS (Consolidated) ---
+    function openDonateModal() {
+        document.getElementById('donate-modal').style.display = 'flex';
+    }
+    function closeDonateModal() {
+        document.getElementById('donate-modal').style.display = 'none';
     }
 
-    // --- DATA MANAGEMENT ---
-    function saveData() {
-        // Save current frame state first
-        saveCurrentFrameState();
-        
-        // Load existing global data to merge
-        let globalData = {};
-        try {
-            globalData = JSON.parse(localStorage.getItem(DATA_KEY)) || {};
-        } catch(e) { globalData = {}; }
+    // --- DRAWING ENGINE ---
+    function drawCourt() {
+        ctx.fillStyle = "#e0bb86";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const W = canvas.width, H = canvas.height;
+        ctx.lineWidth = 3; ctx.strokeStyle = "white"; ctx.lineCap = "round"; ctx.setLineDash([]);
+        ctx.beginPath();
 
-        // Update designer part
-        globalData.designer = {
-            sequence: playSequence,
-            currentIndex: currentFrameIndex
-        };
-        
-        localStorage.setItem(DATA_KEY, JSON.stringify(globalData));
-    }
-
-    function loadData() {
-        const dataStr = localStorage.getItem(DATA_KEY);
-        if (dataStr) {
-            const data = JSON.parse(dataStr);
-            if(data.designer && data.designer.sequence && data.designer.sequence.length > 0) {
-                playSequence = data.designer.sequence;
-                currentFrameIndex = data.designer.currentIndex || 0;
-            } else {
-                // Default Start
-                loadFormation('5out', true);
-            }
+        if (state.courtType === 'full') {
+            const m = 20;
+            ctx.strokeRect(m, m, W-2*m, H-2*m);
+            const midY = H/2;
+            ctx.moveTo(m, midY); ctx.lineTo(W-m, midY);
+            ctx.moveTo(W/2+40, midY); ctx.arc(W/2, midY, 40, 0, Math.PI*2);
+            
+            // Top Hoop
+            ctx.strokeRect(W/2-60, m, 120, 100);
+            ctx.moveTo(W/2+40, m+100); ctx.arc(W/2, m+100, 40, 0, Math.PI);
+            ctx.moveTo(W/2+10, m+25); ctx.arc(W/2, m+25, 10, 0, Math.PI*2);
+            // Bottom Hoop
+            ctx.strokeRect(W/2-60, H-m-100, 120, 100);
+            ctx.moveTo(W/2+40, H-m-100); ctx.arc(W/2, H-m-100, 40, 0, Math.PI*2);
+            ctx.moveTo(W/2+10, H-m-25); ctx.arc(W/2, H-m-25, 10, 0, Math.PI*2);
         } else {
-            loadFormation('5out', true);
+            const m = 20;
+            ctx.strokeRect(m, m, W-2*m, H-2*m);
+            const kw = W*0.35, kh = H*0.4;
+            ctx.strokeRect((W-kw)/2, m, kw, kh);
+            ctx.moveTo(W/2+kw/3, m+kh); ctx.arc(W/2, m+kh, kw/3, 0, Math.PI, false);
+            ctx.moveTo(W/2-30, m+30); ctx.lineTo(W/2+30, m+30);
+            ctx.moveTo(W/2+10, m+45); ctx.arc(W/2, m+45, 10, 0, Math.PI*2);
+            
+            // 3pt
+            const cy = m+(H*0.25), tpx = m+30;
+            ctx.moveTo(tpx, m); ctx.lineTo(tpx, cy);
+            ctx.moveTo(W-tpx, m); ctx.lineTo(W-tpx, cy);
+            ctx.moveTo(tpx, cy); ctx.bezierCurveTo(tpx, H*0.85, W-tpx, H*0.85, W-tpx, cy);
         }
-        // Ensure first frame loaded skipping save to prevent overwriting with empty canvas
-        loadFrame(currentFrameIndex, true, true); 
+        ctx.stroke();
     }
 
-    function showNotif(msg) {
-        const n = document.getElementById('notification');
-        n.innerText = msg; n.style.opacity = 1;
-        setTimeout(() => n.style.opacity = 0, 2000);
-    }
+    function render() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        drawCourt();
 
-    // --- TOOL & COLOR SELECTION ---
-    function setTool(tool) {
-        currentTool = tool;
-        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById(`tool-${tool}`);
-        if(btn) btn.classList.add('active');
-        
-        // Cursor logic
-        if(tool === 'move') courtContainer.style.cursor = 'default';
-        else if(tool === 'eraser') courtContainer.style.cursor = 'not-allowed'; 
-        else courtContainer.style.cursor = 'crosshair';
-        
-        showNotif(`Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
-    }
+        const frame = state.frames[state.currentFrame];
+        if (!frame) return;
 
-    function setColor(color, el) {
-        currentColor = color;
-        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-        if(el) el.classList.add('active');
-        showNotif(`Color set to ${color}`);
-    }
-
-    // --- INTERACTION HANDLING (DRAWING & CLICKING) ---
-    function getNormalizedCoords(e) {
-        const rect = courtContainer.getBoundingClientRect();
-        // Handle mouse or touch object
-        const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
-        const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
-        
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
-        
-        return {
-            x: x, 
-            y: y, 
-            nx: (x / rect.width) * COURT_WIDTH, // Normalized x
-            ny: (y / rect.height) * COURT_HEIGHT // Normalized y
-        };
-    }
-
-    function startInteraction(e) {
-        // Prevent interaction if clicking on draggable object in move mode
-        if(e.target.closest('.draggable-obj') && currentTool === 'move') return;
-
-        const pos = getNormalizedCoords(e);
-
-        // ERASER LOGIC
-        if (currentTool === 'eraser') {
-            const objects = playSequence[currentFrameIndex].objects;
-            const rect = courtContainer.getBoundingClientRect();
-            
-            for(let i=objects.length-1; i>=0; i--) {
-                const obj = objects[i];
-                const ox = (obj.x / COURT_WIDTH) * rect.width;
-                const oy = (obj.y / COURT_HEIGHT) * rect.height;
-                
-                if(Math.hypot(pos.x - ox, pos.y - oy) < 25) {
-                    objects.splice(i, 1);
-                    renderFrame(); saveData(); showNotif("Object Erased"); return;
-                }
-            }
-            
-            const paths = playSequence[currentFrameIndex].paths;
-            if(paths.length > 0) {
-                paths.pop();
-                renderFrame(); saveData(); showNotif("Line Erased");
-            }
-            return;
-        }
-
-        // DRAWING LOGIC
-        if (['cut', 'dribble', 'pass'].includes(currentTool)) {
-            isDrawing = true;
-            
-            let drawColor = currentColor;
-            if(currentTool === 'dribble') drawColor = '#2196f3'; // Blue
-            if(currentTool === 'pass') drawColor = '#ffeb3b';    // Yellow
-
-            currentPath = {
-                type: currentTool,
-                color: drawColor,
-                points: [{x: pos.nx, y: pos.ny}]
-            };
-            
-            playSequence[currentFrameIndex].paths.push(currentPath);
-            
-            // Attach global listeners for smoother drawing
-            window.addEventListener('mousemove', handleDrawMove);
-            window.addEventListener('mouseup', handleDrawEnd);
-            window.addEventListener('touchmove', handleDrawMoveTouch, {passive: false});
-            window.addEventListener('touchend', handleDrawEnd);
-            
-            renderFrame();
-        } 
-        else if (currentTool === 'screen') {
-            playSequence[currentFrameIndex].paths.push({
-                type: 'screen',
-                color: currentColor,
-                points: [{x: pos.nx, y: pos.ny}]
-            });
-            renderFrame(); saveData();
-        }
-    }
-
-    function handleDrawMove(e) {
-        if(!isDrawing) return;
-        const pos = getNormalizedCoords(e);
-        currentPath.points.push({x: pos.nx, y: pos.ny});
-        renderFrame(); 
-    }
-    
-    function handleDrawMoveTouch(e) {
-        e.preventDefault();
-        handleDrawMove(e.touches[0]);
-    }
-
-    function handleDrawEnd(e) {
-        isDrawing = false;
-        currentPath = null;
-        window.removeEventListener('mousemove', handleDrawMove);
-        window.removeEventListener('mouseup', handleDrawEnd);
-        window.removeEventListener('touchmove', handleDrawMoveTouch);
-        window.removeEventListener('touchend', handleDrawEnd);
-        saveData();
-    }
-
-    // --- OBJECT MANAGEMENT ---
-    function addObj(type) {
-        saveCurrentFrameState(); 
-        const objects = playSequence[currentFrameIndex].objects;
-        
-        let obj = {
-            id: Date.now() + Math.random().toString(),
-            type: type,
-            x: COURT_WIDTH / 2,
-            y: COURT_HEIGHT / 2,
-            text: ''
-        };
-
-        if(type === 'player') {
-            const num = prompt("Player Number/Initial:", "1");
-            if(!num) return;
-            obj.text = num.substring(0,2);
-            obj.bg = 'var(--primary)';
-        } else if(type === 'opponent') {
-            obj.text = 'x';
-            obj.bg = 'var(--danger)';
-        } else if(type === 'ball') {
-            obj.text = '🏀';
-            obj.bg = 'transparent';
-        } else if(type === 'cone') {
-            obj.text = '▲';
-            obj.bg = 'transparent';
-            obj.color = 'var(--equity)';
-        } else if(type === 'text') {
-            const txt = prompt("Text Label:", "Screen");
-            if(!txt) return;
-            obj.text = txt;
-            obj.bg = 'white';
-            obj.color = 'black';
-            obj.isLabel = true;
-        }
-
-        objects.push(obj);
-        renderFrame();
-        saveData();
-    }
-
-    // --- RENDERING ---
-    function renderFrame() {
-        const frame = playSequence[currentFrameIndex];
-        if(!frame) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        (frame.paths || []).forEach(path => {
-            if(path.type === 'screen') { drawScreen(path); return; }
-            if(!path.points || path.points.length < 2) return;
-
+        // Draw Lines
+        frame.paths.forEach(path => {
+            if (path.points.length < 2) return;
             ctx.beginPath();
-            ctx.strokeStyle = path.color || 'white';
+            ctx.strokeStyle = path.color;
             ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            if(path.type === 'dribble') ctx.setLineDash([10, 5]); 
-            else if(path.type === 'pass') ctx.setLineDash([2, 5]); 
+            if (path.type === 'dribble') ctx.setLineDash([10, 8]);
+            else if (path.type === 'pass') ctx.setLineDash([3, 5]);
             else ctx.setLineDash([]); 
 
-            const p0 = normToPx(path.points[0]);
-            ctx.moveTo(p0.x, p0.y);
-            
-            for(let i=1; i<path.points.length; i++) {
+            const start = normToPx(path.points[0]);
+            ctx.moveTo(start.x, start.y);
+            for(let i=1; i<path.points.length; i++){
                 const p = normToPx(path.points[i]);
                 ctx.lineTo(p.x, p.y);
             }
             ctx.stroke();
 
             const end = normToPx(path.points[path.points.length-1]);
-            const prev = normToPx(path.points[Math.max(0, path.points.length-10)]); 
-            drawArrowHead(ctx, prev.x, prev.y, end.x, end.y);
-            
-            ctx.setLineDash([]);
+            const prev = normToPx(path.points[Math.max(0, path.points.length-10)]) || normToPx(path.points[0]);
+            if (Math.hypot(end.x - prev.x, end.y - prev.y) > 5) drawArrow(ctx, prev, end, path.color);
         });
 
-        objectsLayer.innerHTML = ''; 
+        renderObjectsDOM(frame.objects);
+        document.getElementById('seq-step-display').innerText = `${state.currentFrame + 1} / ${state.frames.length}`;
+        saveLocal();
+    }
 
-        (frame.objects || []).forEach(obj => {
+    function renderObjectsDOM(objects) {
+        objectsLayer.innerHTML = '';
+        objects.forEach(obj => {
             const el = document.createElement('div');
             el.className = 'draggable-obj';
-            el.style.left = (obj.x / COURT_WIDTH * 100) + '%';
-            el.style.top = (obj.y / COURT_HEIGHT * 100) + '%';
-            el.innerHTML = obj.text;
+            el.style.left = (obj.x / LOGICAL_WIDTH * 100) + '%';
+            el.style.top = (obj.y / LOGICAL_HEIGHT * 100) + '%';
             
-            if(obj.type === 'player' || obj.type === 'opponent') {
+            if(obj.type === 'player') {
                 el.classList.add('drag-player');
-                el.style.backgroundColor = obj.bg;
-            } else if(obj.type === 'ball') {
+                el.style.background = 'var(--primary)';
+                el.innerText = obj.text;
+            } else if (obj.type === 'opponent') {
+                el.classList.add('drag-player');
+                el.style.background = 'var(--danger)';
+                el.innerText = obj.text;
+            } else if (obj.type === 'ball') {
                 el.classList.add('drag-ball');
-            } else if(obj.type === 'cone') {
+                el.innerText = '🏀';
+            } else if (obj.type === 'cone') {
                 el.classList.add('drag-cone');
-                el.innerHTML = ''; 
-            } else if(obj.isLabel) {
-                el.style.background = 'white';
-                el.style.padding = '2px 5px';
-                el.style.border = '1px solid #333';
-                el.style.fontSize = '0.8rem';
-                el.style.borderRadius = '3px';
-                el.style.width = 'auto';
-                el.style.height = 'auto';
+            } else if (obj.type === 'screen') {
+                el.classList.add('drag-screen');
+                el.innerText = 'T'; 
+            } else if (obj.type === 'text') {
+                el.classList.add('drag-text');
+                el.innerText = obj.text;
             }
 
-            makeDraggable(el, obj);
+            el.onmousedown = (e) => startDragObj(e, obj);
+            el.ontouchstart = (e) => { e.preventDefault(); startDragObj(e.touches[0], obj); };
             objectsLayer.appendChild(el);
         });
     }
 
-    function normToPx(pt) {
+    function drawArrow(ctx, from, to, color) {
+        const headlen = 12;
+        const angle = Math.atan2(to.y - from.y, to.x - from.x);
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 6), to.y - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 6), to.y - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(to.x, to.y);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    // --- INTERACTION ---
+    function getNormalizedCoords(cX, cY) {
+        const rect = container.getBoundingClientRect();
         return {
-            x: (pt.x / COURT_WIDTH) * canvas.width,
-            y: (pt.y / COURT_HEIGHT) * canvas.height
+            nx: ((cX - rect.left) / rect.width) * LOGICAL_WIDTH,
+            ny: ((cY - rect.top) / rect.height) * LOGICAL_HEIGHT
         };
     }
 
-    function drawScreen(path) {
-        const pt = normToPx(path.points[0]);
-        ctx.beginPath();
-        ctx.strokeStyle = path.color || 'white';
-        ctx.lineWidth = 4;
-        ctx.setLineDash([]);
-        ctx.moveTo(pt.x - 10, pt.y);
-        ctx.lineTo(pt.x + 10, pt.y); 
-        ctx.moveTo(pt.x, pt.y - 10);
-        ctx.lineTo(pt.x, pt.y + 10); 
-        ctx.stroke();
-    }
-
-    function drawArrowHead(ctx, fromX, fromY, toX, toY) {
-        const headlen = 10;
-        const angle = Math.atan2(toY - fromY, toX - fromX);
-        ctx.beginPath();
-        ctx.moveTo(toX, toY);
-        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
-        ctx.moveTo(toX, toY);
-        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
-        ctx.stroke();
-    }
-
-    // --- DRAG LOGIC ---
-    function makeDraggable(el, dataObj) {
-        let isDrag = false;
+    function handleStart(e) {
+        const coords = getNormalizedCoords(e.clientX, e.clientY);
         
-        const onDown = (e) => {
-            if(currentTool !== 'move') return;
-            e.preventDefault();
-            e.stopPropagation(); 
-            isDrag = true;
-            el.style.cursor = 'grabbing';
-            
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onUp);
-            window.addEventListener('touchmove', onMove, {passive:false});
-            window.addEventListener('touchend', onUp);
-        };
-
-        const onMove = (e) => {
-            if(!isDrag) return;
-            e.preventDefault();
-            const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
-            const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
-            
-            const rect = courtContainer.getBoundingClientRect();
-            let x = clientX - rect.left;
-            let y = clientY - rect.top;
-            
-            x = Math.max(0, Math.min(x, rect.width));
-            y = Math.max(0, Math.min(y, rect.height));
-            
-            el.style.left = (x / rect.width * 100) + '%';
-            el.style.top = (y / rect.height * 100) + '%';
-            
-            dataObj.x = (x / rect.width) * COURT_WIDTH;
-            dataObj.y = (y / rect.height) * COURT_HEIGHT;
-        };
-
-        const onUp = () => {
-            isDrag = false;
-            el.style.cursor = 'grab';
-            window.removeEventListener('mousemove', onMove);
-            window.removeEventListener('mouseup', onUp);
-            window.removeEventListener('touchmove', onMove);
-            window.removeEventListener('touchend', onUp);
-            saveData();
-        };
-
-        el.addEventListener('mousedown', onDown);
-        el.addEventListener('touchstart', onDown);
-    }
-
-    // --- SEQUENCE MANAGEMENT ---
-    function saveCurrentFrameState() {
-        if(!playSequence[currentFrameIndex]) {
-            playSequence[currentFrameIndex] = { objects: [], paths: [] };
-        }
-    }
-
-    function addFrame() {
-        saveCurrentFrameState();
-        const currentFrame = playSequence[currentFrameIndex];
-        const nextObjs = JSON.parse(JSON.stringify(currentFrame.objects));
-        
-        playSequence.splice(currentFrameIndex + 1, 0, {
-            objects: nextObjs,
-            paths: [] 
-        });
-        
-        currentFrameIndex++;
-        updateSeqUI();
-        renderFrame();
-        saveData();
-        showNotif("New Frame Added");
-    }
-
-    function deleteFrame() {
-        if(playSequence.length <= 1) {
-            alert("Cannot delete the only frame.");
-            return;
-        }
-        if(confirm("Delete this frame?")) {
-            playSequence.splice(currentFrameIndex, 1);
-            if(currentFrameIndex >= playSequence.length) currentFrameIndex = playSequence.length - 1;
-            updateSeqUI();
-            renderFrame();
-            saveData();
-        }
-    }
-
-    function nextFrame() {
-        if(currentFrameIndex < playSequence.length - 1) {
-            currentFrameIndex++;
-            updateSeqUI();
-            renderFrame();
-        } else {
-            addFrame();
-        }
-    }
-
-    function prevFrame() {
-        if(currentFrameIndex > 0) {
-            currentFrameIndex--;
-            updateSeqUI();
-            renderFrame();
-        } else {
-            showNotif("Already at the first frame.");
-        }
-    }
-
-    function updateSeqUI() {
-        document.getElementById('seq-step-display').innerText = `Frame ${currentFrameIndex+1} / ${playSequence.length}`;
-    }
-
-    function playAnimation() {
-        if(isPlaying) {
-            clearInterval(animInterval);
-            isPlaying = false;
-            document.getElementById('play-anim-btn').innerText = "▶ Play";
-            return;
-        }
-        
-        isPlaying = true;
-        document.getElementById('play-anim-btn').innerText = "◼ Stop";
-        currentFrameIndex = 0;
-        renderFrame();
-        updateSeqUI();
-
-        animInterval = setInterval(() => {
-            if(currentFrameIndex < playSequence.length - 1) {
-                currentFrameIndex++;
-                renderFrame();
-                updateSeqUI();
-            } else {
-                clearInterval(animInterval);
-                isPlaying = false;
-                document.getElementById('play-anim-btn').innerText = "▶ Play";
+        if (state.settings.tool === 'eraser') {
+            const frame = state.frames[state.currentFrame];
+            // Delete objects near click
+            for (let i=frame.objects.length-1; i>=0; i--) {
+                const obj = frame.objects[i];
+                if (Math.hypot(coords.nx - obj.x, coords.ny - obj.y) < 30) {
+                    frame.objects.splice(i, 1);
+                    render(); showNotif("Object Removed"); return;
+                }
             }
-        }, 1000); 
+            if (frame.paths.length > 0) { frame.paths.pop(); render(); showNotif("Line Removed"); }
+            return;
+        }
+
+        if (['cut', 'dribble', 'pass'].includes(state.settings.tool)) {
+            isDrawing = true;
+            currentPath = { type: state.settings.tool, color: state.settings.lineColor, points: [{x: coords.nx, y: coords.ny}] };
+            state.frames[state.currentFrame].paths.push(currentPath);
+        }
+    }
+
+    function handleMove(e) {
+        if (!isDrawing || !currentPath) return;
+        const coords = getNormalizedCoords(e.clientX, e.clientY);
+        currentPath.points.push({x: coords.nx, y: coords.ny});
+        render();
+    }
+
+    function handleEnd() { isDrawing = false; currentPath = null; saveLocal(); }
+
+    function startDragObj(e, obj) {
+        if(state.settings.tool !== 'move') return;
+        e.stopPropagation();
+        let isDragging = true;
+        
+        const moveHandler = (ev) => {
+            if(!isDragging) return;
+            const cX = ev.clientX || (ev.touches ? ev.touches[0].clientX : 0);
+            const cY = ev.clientY || (ev.touches ? ev.touches[0].clientY : 0);
+            const coords = getNormalizedCoords(cX, cY);
+            obj.x = Math.max(0, Math.min(LOGICAL_WIDTH, coords.nx));
+            obj.y = Math.max(0, Math.min(LOGICAL_HEIGHT, coords.ny));
+            render();
+        };
+        const upHandler = () => {
+            isDragging = false;
+            window.removeEventListener('mousemove', moveHandler);
+            window.removeEventListener('touchmove', moveHandler);
+            window.removeEventListener('mouseup', upHandler);
+            window.removeEventListener('touchend', upHandler);
+        };
+        window.addEventListener('mousemove', moveHandler);
+        window.addEventListener('touchmove', moveHandler, {passive: false});
+        window.addEventListener('mouseup', upHandler);
+        window.addEventListener('touchend', upHandler);
+    }
+
+    function normToPx(pt) {
+        return { x: (pt.x/LOGICAL_WIDTH)*canvas.width, y: (pt.y/LOGICAL_HEIGHT)*canvas.height };
+    }
+
+    // --- UI ACTIONS ---
+    function setTool(tool) {
+        state.settings.tool = tool;
+        document.querySelectorAll('.tool-sidebar .tool-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById('tool-' + tool);
+        if(btn) btn.classList.add('active');
+        container.style.cursor = tool === 'move' ? 'default' : (tool === 'eraser' ? 'not-allowed' : 'crosshair');
+        showNotif("Tool: " + tool.toUpperCase());
+    }
+
+    function setColor(color, btn) {
+        state.settings.lineColor = color;
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function toggleCourtType() {
+        state.courtType = state.courtType === 'half' ? 'full' : 'half';
+        render();
+    }
+
+    function addObj(type) {
+        const obj = { id: Date.now(), type: type, x: LOGICAL_WIDTH/2, y: LOGICAL_HEIGHT/2, text: '' };
+        
+        if(type === 'player') obj.text = prompt("Player Number:", "1") || "1";
+        if(type === 'opponent') obj.text = "x";
+        if(type === 'text') obj.text = prompt("Label Text:", "Note") || "Note";
+        
+        state.frames[state.currentFrame].objects.push(obj);
+        setTool('move'); // Auto-switch to move so they can position it
+        render();
+        showNotif("Added " + type);
     }
 
     function clearCanvas() {
         if(confirm("Clear this frame?")) {
-            playSequence[currentFrameIndex] = { objects: [], paths: [] };
-            renderFrame();
-            saveData();
+            state.frames[state.currentFrame] = { objects: [], paths: [] };
+            render();
         }
     }
 
-    function removeObject(e) {
-        e.preventDefault();
-        if(currentTool === 'eraser') startInteraction(e);
+    function addFrame() {
+        const lastFrame = state.frames[state.currentFrame];
+        const newFrame = { objects: JSON.parse(JSON.stringify(lastFrame.objects)), paths: [] };
+        state.frames.splice(state.currentFrame + 1, 0, newFrame);
+        state.currentFrame++;
+        render();
     }
 
-    // --- FORMATIONS & PRESETS ---
-    function loadFormation(type, silent=false) {
-        if(!silent && !confirm("Load formation? Current frame will be overwritten.")) return;
-        
-        let objs = [];
-        const mkObj = (t, txt, x, y, bg) => ({
-            id: Date.now()+Math.random(), type: t, text: txt, x: x, y: y, bg: bg || (t==='player'?'var(--primary)':'var(--danger)')
-        });
-
-        if(type === 'man' || type === '5out') {
-            objs = [ mkObj('player','1', 250, 430), mkObj('player','2', 450, 300), mkObj('player','3', 50, 300), mkObj('player','4', 420, 100), mkObj('player','5', 80, 100), mkObj('ball','🏀', 250, 430) ];
-        } else if(type === '23') { 
-            objs = [ mkObj('opponent','x1', 180, 350), mkObj('opponent','x2', 320, 350), mkObj('opponent','x3', 80, 100), mkObj('opponent','x4', 250, 100), mkObj('opponent','x5', 420, 100) ];
-        } else if(type === '32') { 
-            objs = [ mkObj('opponent','x1', 250, 380), mkObj('opponent','x2', 100, 300), mkObj('opponent','x3', 400, 300), mkObj('opponent','x4', 150, 100), mkObj('opponent','x5', 350, 100) ];
-        } else if(type === '4out') {
-            objs = [ mkObj('player','1', 300, 430), mkObj('player','2', 450, 250), mkObj('player','3', 50, 250), mkObj('player','4', 150, 430), mkObj('player','5', 400, 80), mkObj('ball','🏀', 300, 430) ];
+    function deleteFrame() {
+        if(state.frames.length <= 1) return;
+        if(confirm("Delete this frame?")) {
+            state.frames.splice(state.currentFrame, 1);
+            if(state.currentFrame >= state.frames.length) state.currentFrame = state.frames.length - 1;
+            render();
         }
-
-        playSequence = [{ objects: objs, paths: [] }];
-        currentFrameIndex = 0;
-        renderFrame();
-        updateSeqUI();
-        saveData();
     }
 
-    const PRESETS = {
-        horns: [{objects: [{type:'player',text:'1',x:250,y:400,bg:'var(--primary)'},{type:'player',text:'2',x:50,y:50,bg:'var(--primary)'},{type:'player',text:'3',x:450,y:50,bg:'var(--primary)'},{type:'player',text:'4',x:180,y:300,bg:'var(--primary)'},{type:'player',text:'5',x:320,y:300,bg:'var(--primary)'},{type:'ball',text:'🏀',x:250,y:400}], paths: []}],
-        blitz: [{objects: [{type:'player',text:'1',x:480,y:250,bg:'var(--primary)'},{type:'player',text:'2',x:250,y:250,bg:'var(--primary)'},{type:'player',text:'3',x:250,y:100,bg:'var(--primary)'},{type:'player',text:'4',x:250,y:350,bg:'var(--primary)'},{type:'player',text:'5',x:100,y:250,bg:'var(--primary)'},{type:'ball',text:'🏀',x:480,y:250}], paths: []}],
-        flex: [{objects: [{type:'player',text:'1',x:250,y:430,bg:'var(--primary)'},{type:'player',text:'2',x:450,y:300,bg:'var(--primary)'},{type:'player',text:'3',x:50,y:300,bg:'var(--primary)'},{type:'player',text:'4',x:80,y:50,bg:'var(--primary)'},{type:'player',text:'5',x:420,y:50,bg:'var(--primary)'},{type:'ball',text:'🏀',x:250,y:430}], paths: []}],
-        shuffle: [{objects: [{type:'player',text:'1',x:350,y:350,bg:'var(--primary)'},{type:'player',text:'2',x:150,y:350,bg:'var(--primary)'},{type:'player',text:'3',x:50,y:100,bg:'var(--primary)'},{type:'player',text:'4',x:450,y:100,bg:'var(--primary)'},{type:'player',text:'5',x:250,y:100,bg:'var(--primary)'},{type:'ball',text:'🏀',x:350,y:350}], paths: []}]
-    };
+    function nextFrame() { if(state.currentFrame < state.frames.length-1) { state.currentFrame++; render(); } }
+    function prevFrame() { if(state.currentFrame > 0) { state.currentFrame--; render(); } }
+
+    function toggleAnimation() {
+        const btn = document.getElementById('play-anim-btn');
+        if(isPlaying) {
+            clearInterval(animInterval);
+            isPlaying = false;
+            btn.innerText = "▶ Play Animation";
+            btn.classList.replace('btn-red', 'btn-green');
+        } else {
+            isPlaying = true;
+            state.currentFrame = 0;
+            render();
+            btn.innerText = "◼ Stop";
+            btn.classList.replace('btn-green', 'btn-red');
+            animInterval = setInterval(() => {
+                if(state.currentFrame < state.frames.length - 1) { state.currentFrame++; render(); } 
+                else { clearInterval(animInterval); isPlaying = false; btn.innerText = "▶ Play Animation"; btn.classList.replace('btn-red', 'btn-green'); }
+            }, 1000);
+        }
+    }
+
+    function loadFormation(type) {
+        if(!confirm("Overwrite frame with formation?")) return;
+        const formations = {
+            'man': [{t:'player',txt:'1',x:250,y:400}, {t:'player',txt:'2',x:450,y:300}, {t:'player',txt:'3',x:50,y:300}, {t:'player',txt:'4',x:450,y:50}, {t:'player',txt:'5',x:50,y:50}],
+            '23': [{t:'opponent',txt:'x1',x:170,y:350}, {t:'opponent',txt:'x2',x:330,y:350}, {t:'opponent',txt:'x3',x:80,y:100}, {t:'opponent',txt:'x4',x:250,y:100}, {t:'opponent',txt:'x5',x:420,y:100}],
+            '5out': [{t:'player',txt:'1',x:250,y:400}, {t:'player',txt:'2',x:450,y:300}, {t:'player',txt:'3',x:50,y:300}, {t:'player',txt:'4',x:480,y:50}, {t:'player',txt:'5',x:20,y:50}],
+        };
+        const setup = formations[type] || formations['man'];
+        const newObjs = setup.map(p => ({ id: Date.now()+Math.random(), type: p.t, text: p.txt, x: p.x, y: p.y }));
+        newObjs.push({id: Date.now(), type: 'ball', x: 250, y: 380});
+        state.frames[state.currentFrame].objects = newObjs;
+        state.courtType = 'half';
+        render();
+    }
 
     function loadPreset() {
         const val = document.getElementById('preset-select').value;
         if(!val) return;
-        if(!confirm("Load Preset?")) return;
-        playSequence = JSON.parse(JSON.stringify(PRESETS[val]));
-        currentFrameIndex = 0;
-        
-        // SPECIAL FIX: When loading a preset, use loadFrame with skipSave=true
-        // to prevent overwriting the fresh preset data with the empty canvas state.
-        loadFrame(currentFrameIndex, true, true); 
-        
-        updateSeqUI();
-        saveData();
-        showNotif("Preset Loaded");
+        loadFormation('man');
+        const f = state.frames[state.currentFrame];
+        if(val === 'horns') {
+            f.objects[3].x = 180; f.objects[3].y = 300; 
+            f.objects[4].x = 320; f.objects[4].y = 300; 
+            f.objects[1].x = 480; f.objects[1].y = 20; 
+            f.objects[2].x = 20; f.objects[2].y = 20; 
+        } else if(val === 'box') {
+             f.objects[3].x = 180; f.objects[3].y = 100;
+             f.objects[4].x = 320; f.objects[4].y = 100;
+             f.objects[1].x = 320; f.objects[1].y = 300;
+             f.objects[2].x = 180; f.objects[2].y = 300;
+        }
+        render();
     }
 
-    /**
-     * Loads the specified frame data onto the court.
-     * @param {number} index - The index of the frame to load.
-     * @param {boolean} [suppressNotif=false] - Whether to suppress the notification message.
-     * @param {boolean} [skipSave=false] - If true, skips saving the current canvas state. Crucial for loadPresetPlay.
-     */
-    function loadFrame(index, suppressNotif = false, skipSave = false) {
-        if (index < 0 || index >= playSequence.length) return;
-        if (index !== currentFrameIndex && !skipSave) { saveCurrentFrameState(); }
-
-        currentFrameIndex = index;
-        const frame = playSequence[currentFrameIndex];
-        
-        // Direct render, object loading happens inside renderFrame
-        renderFrame(); 
-        updateSeqUI();
-        if (!suppressNotif) showNotif(`Frame ${currentFrameIndex + 1}`);
+    // --- SAVE/LOAD ---
+    function saveLocal() { localStorage.setItem(DATA_KEY, JSON.stringify(state)); }
+    function loadLocalData() {
+        const d = localStorage.getItem(DATA_KEY);
+        if(d) { try { state = JSON.parse(d); render(); } catch(e){} } else { loadFormation('man'); }
     }
-
-    // --- IMPORT / EXPORT ---
     function exportPlayJSON() {
-        const name = document.getElementById('play-save-name').value || 'MyPlay';
-        const blob = new Blob([JSON.stringify({name, playSequence})], {type:'application/json'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${name}.json`; a.click();
+        const name = document.getElementById('play-save-name').value || 'basketball-play';
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+        const a = document.createElement('a'); a.href = dataStr; a.download = name + ".json"; a.click();
     }
-
+    function openImport() { document.getElementById('imp-file').click(); }
     function loadPlayJSON(input) {
-        const f = input.files[0];
-        if(!f) return;
-        const r = new FileReader();
-        r.onload = (e) => {
-            try {
-                const d = JSON.parse(e.target.result);
-                if(d.playSequence) {
-                    playSequence = d.playSequence;
-                    currentFrameIndex = 0;
-                    loadFrame(currentFrameIndex, true, true); // Use skipSave here too
-                    updateSeqUI();
-                    saveData();
-                    showNotif("Loaded");
-                }
-            } catch(err) {
-                alert("Invalid File");
-            }
+        const file = input.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try { state = JSON.parse(e.target.result); state.currentFrame = 0; render(); showNotif("Play Loaded"); } 
+            catch(err) { alert("Invalid File"); }
         };
-        r.readAsText(f);
+        reader.readAsText(file);
     }
-
-    // --- DONATE MODAL LOGIC ---
-    function openDonateModal() { document.getElementById('donate-modal').style.display = 'flex'; }
-    function closeDonateModal() { document.getElementById('donate-modal').style.display = 'none'; }
-
+    function showNotif(msg) {
+        const n = document.getElementById('notification');
+        n.innerText = msg; n.style.opacity = 1; setTimeout(() => n.style.opacity = 0, 2000);
+    }
 </script>
 </body>
 </html>

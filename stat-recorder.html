@@ -77,6 +77,7 @@
         /* ========================================= */
         #stat-app-container { flex: 1; padding-bottom: 220px; } /* Main content pushes up for fixed controls */
         
+        /* WIDE LAYOUT UPDATE */
         .st-header { 
             padding: 15px; 
             display: flex; 
@@ -221,11 +222,47 @@
 
         /* PRINT STYLES */
         @media print {
-            .st-controls, .st-grid, .st-header, #notification, #shot-chart-modal { display: none !important; }
+            .st-controls, .st-grid, .st-header, #notification { display: none !important; }
+            
             body { background: white; color: black; }
             .st-table { color: black; width: 100%; }
             .st-table th, .st-table td { color: black; border-color: #333; }
             .st-table td:first-child { color: black; }
+
+            /* SHOT CHART PRINTING */
+            #shot-chart-modal {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%;
+                background: white !important;
+                z-index: 5000;
+                height: auto;
+                overflow: visible;
+            }
+            #shot-chart-modal .action-btn { display: none !important; } /* Hide close button */
+            #sc-modal-title { color: black !important; text-align: center; }
+
+            #shot-chart-container {
+                border: 2px solid black;
+                box-shadow: none;
+                margin: 0 auto;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .shot-marker {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                box-shadow: none;
+                border: 1px solid #000;
+            }
+            .shot-name-label {
+                background: rgba(0,0,0,0.1);
+                color: black;
+                font-weight: bold;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -234,6 +271,7 @@
         <a href="rotation-tracker.html" class="nav-btn">Rotation & Time</a>
         <button class="nav-btn active">Stat Recorder</button>
         <a href="play-designer.html" class="nav-btn">Play Designer</a>
+        <button class="nav-btn" id="sound-toggle" onclick="toggleSound()" title="Toggle Sound">🔊</button>
         <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
     </nav>
     
@@ -328,6 +366,39 @@
     let shotChartData = [];
     let isShotChartOpen = false;
 
+    // --- SOUND ENGINE ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let soundEnabled = true;
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        const btn = document.getElementById('sound-toggle');
+        if(btn) btn.textContent = soundEnabled ? "🔊" : "🔇";
+    }
+
+    function playSound(type) {
+        if (!soundEnabled) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'click') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+            gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'success') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1);
+            gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+            gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        }
+    }
+
     function getStatPlayerById(id) { return stPlayers.find(p => p.id == id); }
     function showNotif(msg) { const n = document.getElementById('notification'); n.innerText = msg; n.style.opacity = 1; setTimeout(() => n.style.opacity = 0, 2000); }
 
@@ -386,12 +457,18 @@
         document.getElementById('st-score-them').textContent = opponentScore;
     }
     
-    function selectPlayer(id) { selectedStatPlayerId = id; renderStats(); const p = getStatPlayerById(id); if(p) showNotif(`Selected: ${p.name}`); }
+    function selectPlayer(id) { playSound('click'); selectedStatPlayerId = id; renderStats(); const p = getStatPlayerById(id); if(p) showNotif(`Selected: ${p.name}`); }
 
     function addStat(statType) {
         if (!selectedStatPlayerId) { alert("Please select a player first."); return; }
         const player = getStatPlayerById(selectedStatPlayerId); if (!player) return;
         gameHistory.push({ id: player.id, stat: statType, ptsBefore: homeScore, oppBefore: opponentScore });
+        
+        // Play sounds based on action
+        if (statType.includes('m') || statType === 'to') playSound('error');
+        else if (['1pt','2pt','3pt'].includes(statType)) playSound('success');
+        else playSound('click');
+
         switch (statType) {
             case '1pt': player.stats.ft++; homeScore += 1; player.plusMinus++; break;
             case '2pt': player.stats.fg++; homeScore += 2; player.plusMinus += 2; break;
@@ -407,6 +484,7 @@
     }
     
     function addOpponentScore(points) {
+        playSound('error');
         opponentScore += points;
         gameHistory.push({ id: 'opp', stat: `opp_pts_${points}`, ptsBefore: homeScore, oppBefore: opponentScore - points });
         trPlayers.forEach(p => { if(p.isOnCourt) { const st = stPlayers.find(s => s.id === p.id); if(st) st.plusMinus = (st.plusMinus || 0) - points; } });
@@ -415,6 +493,7 @@
 
     function undoStat() {
         if (gameHistory.length === 0) { alert("Nothing to undo."); return; }
+        playSound('click');
         const lastAction = gameHistory.pop(); const player = getStatPlayerById(lastAction.id);
         homeScore = lastAction.ptsBefore; opponentScore = lastAction.oppBefore;
         if (player) {
@@ -453,6 +532,7 @@
     }
 
     function toggleShotChartVis() {
+        playSound('click');
         const modal = document.getElementById('shot-chart-modal'); const container = document.getElementById('shot-chart-container'); container.innerHTML = '';
         if (modal.style.display === 'flex') { modal.style.display = 'none'; } else {
             shotChartData.forEach(shot => {
@@ -482,6 +562,7 @@
     }
 
     function copyGameSummary() {
+        playSound('click');
         const table = document.getElementById('stat-table'); const header = table.rows[0].innerText;
         const rows = Array.from(table.rows).slice(1).map(row => row.innerText.trim().replace(/\s\s+/g, ',')).join('\n');
         let scoreLine = `SCORE: Home ${homeScore} - Guest ${opponentScore}\n`;
@@ -490,8 +571,8 @@
     }
 
     // --- DONATE MODAL LOGIC ---
-    function openDonateModal() { document.getElementById('donate-modal').style.display = 'flex'; }
-    function closeDonateModal() { document.getElementById('donate-modal').style.display = 'none'; }
+    function openDonateModal() { playSound('click'); document.getElementById('donate-modal').style.display = 'flex'; }
+    function closeDonateModal() { playSound('click'); document.getElementById('donate-modal').style.display = 'none'; }
 
     window.onload = () => { loadData(); renderStats(); };
 

@@ -132,6 +132,7 @@
         <button class="nav-btn active">Rotation & Time</button>
         <a href="stat-recorder.html" class="nav-btn">Stat Recorder</a>
         <a href="play-designer.html" class="nav-btn">Play Designer</a>
+        <button class="nav-btn" id="sound-toggle" onclick="toggleSound()" title="Toggle Sound">🔊</button>
         <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
     </nav>
 
@@ -266,7 +267,44 @@
         let quarterLengthInMinutes = 8; let totalTimeoutsPerTeam = 3; 
         let homeTimeoutsRemaining = 3; let guestTimeoutsRemaining = 3;
 
-        window.onload = function() {
+        // --- SOUND ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-toggle');
+            if(btn) btn.textContent = soundEnabled ? "🔊" : "🔇";
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'whistle') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(2000, now); osc.frequency.linearRampToValueAtTime(1500, now + 0.3);
+                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'buzzer') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now);
+                gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 1.5);
+                osc.start(now); osc.stop(now + 1.5);
+            } else if (type === 'success') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            }
+        }
+
+        window.onload = () => {
             loadData();
             const modeSwitch = document.getElementById('mode-switch');
             if (modeSwitch) equityMode = modeSwitch.checked;
@@ -317,6 +355,7 @@
             const pos = document.getElementById('player-position').value;
             if(!name) return;
             createPlayer(name, pos);
+            playSound('click');
             document.getElementById('player-name').value = ''; showNotif(`Added ${name}`);
         }
         function createPlayer(name, pos) {
@@ -325,7 +364,7 @@
             stPlayers.push({ id: newId, name: name, stats: { ft: 0, fg: 0, zp: 0, reb: 0, ast: 0, stl: 0, blk: 0, to: 0, pf: 0 } });
             saveData(); renderTracker();
         }
-        function openBulkImport() { document.getElementById('bulk-modal').style.display = 'flex'; }
+        function openBulkImport() { playSound('click'); document.getElementById('bulk-modal').style.display = 'flex'; }
         function processBulkImport() {
             const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
             const lines = raw.split('\n');
@@ -337,12 +376,14 @@
                     createPlayer(name, pos);
                 }
             });
+            playSound('success');
             document.getElementById('bulk-modal').style.display = 'none'; document.getElementById('bulk-input').value = '';
         }
 
         function toggleGame() {
             if(gameSeconds <= 0 && !gameActive) return;
             gameActive = !gameActive;
+            playSound('whistle');
             const btn = document.getElementById('game-toggle');
             if(gameActive) {
                 btn.textContent = "Pause Clock"; btn.className = "action-btn btn-red";
@@ -364,6 +405,7 @@
                 if(gameSeconds % 10 === 0) saveData(); 
             } else {
                 toggleGame();
+                playSound('buzzer');
                 document.getElementById('game-toggle').textContent = "End of Quarter";
                 document.getElementById('next-q-btn').style.display = 'block';
                 alert("Quarter Ended");
@@ -375,6 +417,7 @@
             updateClockUI(); document.getElementById('next-q-btn').style.display = 'none';
             document.getElementById('game-toggle').textContent = "Start Clock"; document.getElementById('game-toggle').className = "action-btn btn-green";
             trPlayers.forEach(p => { p.currentFatigue = Math.max(0, p.currentFatigue - 30); });
+            playSound('whistle');
             saveData(); renderTracker();
         }
         function updateClockUI() {
@@ -386,6 +429,7 @@
             document.getElementById('guest-to-display').textContent = guestTimeoutsRemaining;
         }
         function callTimeout(team) {
+            playSound('click');
             if (!gameActive) { showNotif("Clock is not running."); return; }
             if (team === 'home') {
                 if (homeTimeoutsRemaining > 0) { homeTimeoutsRemaining--; toggleGame(); showNotif(`Home Timeout! ${homeTimeoutsRemaining} left.`); } 
@@ -396,8 +440,9 @@
             }
             updateTimeoutsUI(); saveData();
         }
-        function toggleMode() { equityMode = document.getElementById('mode-switch').checked; renderTracker(); }
+        function toggleMode() { playSound('click'); equityMode = document.getElementById('mode-switch').checked; renderTracker(); }
         function subPlayer(id) {
+            playSound('click');
             const p = trPlayers.find(x => x.id === id); const onCourt = trPlayers.filter(x => x.isOnCourt).length;
             if(!p.isOnCourt && onCourt >= 5) { alert("Court is full (5 players). Sub someone out first."); return; }
             p.isOnCourt = !p.isOnCourt; saveData(); renderTracker();
@@ -419,6 +464,7 @@
             courtP.forEach(p => courtList.innerHTML += createCard(p)); benchP.forEach(p => benchList.innerHTML += createCard(p));
         }
         function openSettings() { 
+            playSound('click');
             document.getElementById('setting-quarter-length').value = quarterLengthInMinutes;
             document.getElementById('setting-timeouts').value = totalTimeoutsPerTeam;
             document.getElementById('settings-modal').style.display = 'flex'; 
@@ -434,7 +480,7 @@
             updateClockUI(); updateTimeoutsUI(); saveData(); showNotif("Settings Saved");
             document.getElementById('settings-modal').style.display = 'none';
         }
-        function openPlanner() { document.getElementById('planner-modal').style.display = 'flex'; }
+        function openPlanner() { playSound('click'); document.getElementById('planner-modal').style.display = 'flex'; }
         function generatePlan() {
             const p = [...trPlayers]; if(p.length < 5) { alert("Need 5+ players"); return; }
             let html = "<table style='width:100%; border-collapse:collapse;'><tr><th>Period</th><th>Lineup</th></tr>";
@@ -445,11 +491,13 @@
             document.getElementById('plan-container').innerHTML = html + "</table>";
         }
         function generateRecommendation() {
+            playSound('click');
             const c = trPlayers.filter(p=>p.isOnCourt); const b = trPlayers.filter(p=>!p.isOnCourt); if(!c.length || !b.length) return;
             c.sort((x,y) => y.currentFatigue - x.currentFatigue); b.sort((x,y) => x.currentFatigue - y.currentFatigue);
             document.getElementById('feedback-text').innerHTML = `Sub OUT <b>${c[0].name}</b>, IN <b>${b[0].name}</b>`;
             document.getElementById('coach-feedback').style.display = 'block';
             window.pendingSub = { out: c[0].id, in: b[0].id };
+            playSound('success');
         }
         function applySuggestion() {
             if(window.pendingSub) { subPlayer(window.pendingSub.out); subPlayer(window.pendingSub.in); document.getElementById('coach-feedback').style.display = 'none'; }
