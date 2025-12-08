@@ -2,714 +2,306 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Play Designer - TIU Coaching Suite</title>
+    <title>Play Designer</title>
     <style>
-        /* --- GLOBAL & THEME --- */
-        :root {
-            --primary: #1a237e;     /* Deep Blue */
-            --accent: #ff6f00;      /* Basketball Orange */
-            --bg: #f0f2f5;
-            --court-floor: #e0bb86; /* Wood color */
-            --court-lines: #ffffff;
-            --success: #2e7d32;
-            --danger: #c62828;
-            --cashapp: #00D632;     /* Cash App Green */
-        }
+        :root { --primary: #1a237e; --accent: #ff6f00; --bg: #f0f2f5; --court: #e0bb86; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
         
-        * { box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg); 
-            color: #333; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-
-        /* --- UNIFIED TOP NAVIGATION --- */
-        .app-nav {
-            background: var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            height: 50px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            flex-shrink: 0;
-            color: white;
-        }
-        .nav-brand { font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
-        .nav-links { display: flex; gap: 0; height: 100%; }
-        .nav-link {
-            display: flex; align-items: center; padding: 0 20px;
-            color: rgba(255,255,255,0.7); text-decoration: none;
-            font-weight: 500; height: 100%; transition: all 0.2s;
-            border-bottom: 4px solid transparent;
-        }
-        .nav-link:hover { color: white; background: rgba(255,255,255,0.1); }
-        .nav-link.active { color: white; border-bottom: 4px solid var(--accent); background: rgba(0,0,0,0.1); }
-
-        .nav-actions { display: flex; gap: 10px; align-items: center; }
-        .nav-btn-sm {
-            background: rgba(255,255,255,0.2); border: none; color: white;
-            padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
-            text-decoration: none; display: inline-flex; align-items: center;
-        }
-        .nav-btn-sm:hover { background: rgba(255,255,255,0.3); }
-
-        /* CASH APP BUTTON STYLE */
-        .btn-cashapp {
-            background-color: var(--cashapp) !important;
-            color: white !important;
-            font-weight: bold;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .btn-cashapp:hover { filter: brightness(1.1); }
-
-        /* --- DESIGNER LAYOUT --- */
-        .designer-container {
-            display: grid;
-            grid-template-columns: 220px 1fr 220px; 
-            gap: 15px;
-            padding: 15px;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* --- SIDEBARS --- */
-        .tool-sidebar {
-            background: white; padding: 15px; border-radius: 8px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            overflow-y: auto; display: flex; flex-direction: column; gap: 8px; height: 100%;
-        }
-        h3 { 
-            margin: 5px 0 10px 0; font-size: 0.85rem; text-transform: uppercase; 
-            color: #666; border-bottom: 2px solid #eee; padding-bottom: 5px; 
-        }
-
-        /* --- TOOL BUTTONS --- */
-        .tool-btn {
-            width: 100%; padding: 8px 10px; border: 1px solid #ddd; background: #f8f9fa;
-            cursor: pointer; text-align: left; border-radius: 4px; font-size: 0.85rem; 
-            display: flex; align-items: center; gap: 8px; transition: all 0.1s;
-        }
-        .tool-btn:hover { background: #e9ecef; border-color: #bbb; }
+        .toolbar-container { background: white; padding: 5px; border-bottom: 1px solid #ccc; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; align-items: center; }
+        .tool-group { display: flex; gap: 2px; border-right: 1px solid #ddd; padding-right: 5px; margin-right: 5px; align-items: center;}
+        
+        .tool-btn { padding: 6px 10px; background: #f0f0f0; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display:flex; align-items:center; gap:5px;}
+        .tool-btn:hover { background: #e0e0e0; }
         .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .tool-btn.danger { background: #ffebee; color: #c62828; }
         
-        .action-row { display: flex; gap: 5px; }
-        .action-btn { flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 0.8rem; }
-        .btn-blue { background: var(--primary); }
-        .btn-orange { background: var(--accent); }
-        .btn-red { background: var(--danger); }
-        .btn-green { background: var(--success); }
+        select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
 
-        /* --- COURT AREA --- */
-        .court-area-wrapper { 
-            display: flex; flex-direction: column; gap: 10px; height: 100%; 
-            align-items: center; justify-content: center; position: relative;
-        }
+        #main-area { flex: 1; display: flex; overflow: hidden; position: relative;}
+        
+        #canvas-container { flex: 1; background: #333; display: flex; justify-content: center; align-items: center; overflow: auto; position: relative; }
+        #court-wrapper { position: relative; width: 800px; height: 600px; background: var(--court); border: 2px solid white; transition: height 0.3s; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
+        
+        /* Objects */
+        .obj { position: absolute; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; border: 2px solid white; cursor: grab; user-select: none; z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 0.9rem;}
+        .obj.atk { background: var(--primary); }
+        .obj.def { background: #c62828; }
+        .obj.ball { background: orange; border-color: black; color: black; font-size: 1.2rem; }
+        .obj.cone { background: transparent; border: none; font-size: 1.8rem; box-shadow: none; }
+        .obj.screen { background: transparent; border: none; box-shadow: none; border-radius: 0; width: 40px; height: 30px; }
+        .obj.screen::after { content: "T"; font-weight: 900; font-size: 40px; color: #555; }
+        .obj.label { background: transparent; border: none; color: black; width: auto; height: auto; font-size: 1rem; text-shadow: 0 0 2px white; box-shadow: none; white-space: nowrap;}
 
-        #court-wrapper {
-            position: relative; 
-            background: #333; 
-            border: 4px solid #333; 
-            border-radius: 4px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 650px; 
-            aspect-ratio: 500/470; 
-        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
+        .input-box { background: white; padding: 20px; border-radius: 8px; display: flex; gap: 10px; }
         
-        #basketball-court {
-            width: 100%; height: 100%;
-            position: relative; 
-            overflow: hidden;
-            background: var(--court-floor);
-        }
-        
-        canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
-        
-        /* HTML Object Layer */
-        #objects-layer { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            z-index: 10; pointer-events: none; 
-        }
-
-        /* --- OBJECT STYLES --- */
-        .draggable-obj {
-            position: absolute; cursor: grab; user-select: none; pointer-events: auto;
-            font-weight: bold; display: flex; justify-content: center; align-items: center;
-            transform: translate(-50%, -50%); transition: box-shadow 0.2s;
-        }
-        .draggable-obj:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.1); }
-        
-        .drag-player { width: 30px; height: 30px; border-radius: 50%; color: white; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); font-size: 0.9rem; }
-        .drag-ball { font-size: 1.4rem; }
-        .drag-cone { 
-            width: 0; height: 0; 
-            border-left: 10px solid transparent; border-right: 10px solid transparent; 
-            border-bottom: 20px solid var(--accent); 
-        }
-        .drag-screen {
-            font-family: sans-serif; font-size: 2rem; font-weight: 900; 
-            color: #333; text-shadow: 1px 1px 0px white;
-            cursor: move;
-        }
-        .drag-text {
-            background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 4px; 
-            border: 1px solid #333; font-size: 0.8rem; white-space: nowrap;
-        }
-
-        /* --- CONTROLS --- */
-        .seq-control-panel { 
-            background: white; padding: 8px 15px; border-radius: 20px; 
-            display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-            width: 100%; max-width: 600px; justify-content: space-between;
-        }
-        .frame-indicator { font-weight: bold; color: var(--primary); font-family: monospace; font-size: 1.1rem; }
-        
-        .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-        .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid #ddd; }
-        .color-dot.active { border-color: #333; transform: scale(1.15); }
-
-        #notification { 
-            position: fixed; top: 70px; right: 20px; background: #333; color: white; 
-            padding: 10px 20px; border-radius: 4px; opacity: 0; transition: opacity 0.3s; 
-            pointer-events: none; z-index: 2000; font-size: 0.9rem;
-        }
-
-        /* --- MODAL (POP OUT) STYLES --- */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .cash-tag { font-size: 1.5rem; font-weight: bold; color: var(--cashapp); margin: 15px 0; display: block; text-decoration: none; }
-        .cash-tag:hover { text-decoration: underline; }
-        
-        /* Mobile Adjustments */
-        @media (max-width: 900px) {
-            .designer-container { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; overflow-y: auto; }
-            .tool-sidebar { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-            .nav-brand span { display: none; }
+        @media print {
+            .toolbar-container { display: none; }
+            #canvas-container { background: white; }
+            #court-wrapper { border: 1px solid black; }
         }
     </style>
 </head>
 <body>
 
-    <nav class="app-nav">
-        <div class="nav-brand">
-            <span>🏀 TIU Suite</span>
+    <div class="toolbar-container">
+        <div class="tool-group">
+            <button class="tool-btn" onclick="addObj('atk')">👤 Atk</button>
+            <button class="tool-btn" onclick="addObj('def')">🛡️ Def</button>
+            <button class="tool-btn" onclick="addObj('ball')">🏀 Ball</button>
+            <button class="tool-btn" onclick="addObj('cone')">⚠️ Cone</button>
+            <button class="tool-btn" onclick="addObj('screen')">T Screen</button>
+            <button class="tool-btn" onclick="promptLabel()">Aa Label</button>
         </div>
-        <div class="nav-links">
-            <a href="stat-recorder.html" class="nav-link">Stats</a>
-            <a href="rotation-tracker.html" class="nav-link">Rotation</a>
-            <a href="play-designer.html" class="nav-link active">Plays</a>
-        </div>
-        <div class="nav-actions">
-            <button class="nav-btn-sm btn-cashapp" onclick="openDonateModal()">
-                $ Donate
-            </button>
-            
-            <button class="nav-btn-sm" onclick="exportPlayJSON()">Save</button>
-            <button class="nav-btn-sm" onclick="openImport()">Load</button>
-        </div>
-    </nav>
-    
-    <div id="notification">Action Recorded</div>
-
-    <div id="donate-modal" class="modal">
-        <div class="modal-content">
-            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
-            <p>If you find this tool helpful for your coaching, consider supporting via Cash App!</p>
-            
-            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-tag">$AnthonyTiu</a>
-            
-            <button class="action-btn btn-gray" onclick="closeDonateModal()" style="background:#666; color:white; margin-top:10px;">Close</button>
-        </div>
-    </div>
-
-    <div class="designer-container">
-        <div class="tool-sidebar">
-            <div>
-                <h3>Objects</h3>
-                <div class="action-row">
-                    <button class="tool-btn" onclick="addObj('player')">👤 Atk</button>
-                    <button class="tool-btn" onclick="addObj('opponent')">🛡️ Def</button>
-                </div>
-                <div class="action-row" style="margin-top:5px;">
-                    <button class="tool-btn" onclick="addObj('ball')">🏀 Ball</button>
-                    <button class="tool-btn" onclick="addObj('cone')">⚠️ Cone</button>
-                </div>
-                <button class="tool-btn" style="margin-top:5px;" onclick="addObj('screen')">
-                    <strong>T</strong> &nbsp; Screen (Pick)
-                </button>
-                <button class="tool-btn" style="margin-top:5px;" onclick="addObj('text')">Aa Label</button>
-            </div>
-
-            <div>
-                <h3>Lines</h3>
-                <div class="color-picker">
-                    <div class="color-dot active" style="background:white;" onclick="setColor('white', this)"></div>
-                    <div class="color-dot" style="background:#ffeb3b;" onclick="setColor('#ffeb3b', this)"></div>
-                    <div class="color-dot" style="background:#f44336;" onclick="setColor('#f44336', this)"></div>
-                    <div class="color-dot" style="background:#2196f3;" onclick="setColor('#2196f3', this)"></div>
-                    <div class="color-dot" style="background:#000;" onclick="setColor('#000', this)"></div>
-                </div>
-
-                <button class="tool-btn active" id="tool-move" onclick="setTool('move')">✋ Move / Select</button>
-                <button class="tool-btn" id="tool-cut" onclick="setTool('cut')">➝ Cut (Solid)</button>
-                <button class="tool-btn" id="tool-dribble" onclick="setTool('dribble')">〰 Dribble (Dash)</button>
-                <button class="tool-btn" id="tool-pass" onclick="setTool('pass')">--- Pass (Dot)</button>
-                <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">⌫ Eraser</button>
-            </div>
-            
-            <button class="tool-btn btn-red" style="margin-top:auto; color: white;" onclick="clearCanvas()">🗑 Clear Frame</button>
-        </div>
-
-        <div class="court-area-wrapper">
-            <div class="seq-control-panel">
-                <button class="action-btn btn-blue" onclick="prevFrame()">◀</button>
-                <button class="action-btn btn-green" id="play-anim-btn" onclick="toggleAnimation()" style="flex:2">▶ Play Animation</button>
-                <button class="action-btn btn-blue" onclick="nextFrame()">▶</button>
-                <span class="frame-indicator" id="seq-step-display">1/1</span>
-            </div>
-
-            <div id="court-wrapper">
-                <div id="basketball-court">
-                    <canvas id="drawing-canvas"></canvas>
-                    <div id="objects-layer"></div>
-                </div>
-            </div>
-            
-            <div class="action-row" style="width:100%; max-width:600px;">
-                <button class="tool-btn" onclick="addFrame()">+ Add Next Step</button>
-                <button class="tool-btn" onclick="deleteFrame()" style="color:var(--danger)">Remove Step</button>
-            </div>
-        </div>
-
-        <div class="tool-sidebar">
-            <div>
-                <h3>Court Settings</h3>
-                <button class="tool-btn" onclick="toggleCourtType()">🔄 Toggle Half/Full</button>
-            </div>
-            
-            <div>
-                <h3>Formations</h3>
-                <button class="tool-btn" onclick="loadFormation('man')">Man-to-Man</button>
-                <button class="tool-btn" onclick="loadFormation('23')">2-3 Zone</button>
-                <button class="tool-btn" onclick="loadFormation('32')">3-2 Zone</button>
-                <button class="tool-btn" onclick="loadFormation('5out')">5 Out</button>
-                <button class="tool-btn" onclick="loadFormation('4out')">4 Out 1 In</button>
-            </div>
-            
-            <div>
-                <h3>Quick Plays</h3>
-                <select id="preset-select" class="tool-btn" style="padding:5px; margin-bottom:5px;">
-                    <option value="">Select Play...</option>
-                    <option value="horns">Horns Set</option>
-                    <option value="box">Box Set</option>
-                </select>
-                <button class="action-btn btn-orange" style="width:100%" onclick="loadPreset()">Load Preset</button>
-            </div>
-
-            <div style="margin-top:auto">
-                <h3>File</h3>
-                <input type="text" id="play-save-name" placeholder="Play Name" style="width:100%; margin-bottom:5px; padding:6px; border:1px solid #ddd; border-radius:4px;">
-                <input type="file" id="imp-file" style="display:none" onchange="loadPlayJSON(this)">
-            </div>
-        </div>
-    </div>
-
-<script>
-    // --- CONSTANTS & CONFIG ---
-    const DATA_KEY = 'tiu_play_v1';
-    const LOGICAL_WIDTH = 500;
-    const LOGICAL_HEIGHT = 470;
-
-    // --- STATE ---
-    let state = {
-        courtType: 'half',
-        frames: [{ objects: [], paths: [] }],
-        currentFrame: 0,
-        settings: { lineColor: 'white', tool: 'move' }
-    };
-
-    let isDrawing = false;
-    let currentPath = null;
-    let isPlaying = false;
-    let animInterval = null;
-
-    // --- DOM ELEMENTS ---
-    const canvas = document.getElementById('drawing-canvas');
-    const ctx = canvas.getContext('2d');
-    const objectsLayer = document.getElementById('objects-layer');
-    const container = document.getElementById('basketball-court');
-
-    // --- INITIALIZATION ---
-    window.onload = () => {
-        initCanvas();
-        loadLocalData();
-        window.addEventListener('resize', render);
-    };
-
-    function initCanvas() {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        container.addEventListener('mousedown', handleStart);
-        container.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e.touches[0]); }, {passive: false});
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('touchmove', (e) => { if(isDrawing) e.preventDefault(); handleMove(e.touches[0]); }, {passive: false});
-        window.addEventListener('mouseup', handleEnd);
-        window.addEventListener('touchend', handleEnd);
-    }
-
-    // --- MODAL FUNCTIONS (Consolidated) ---
-    function openDonateModal() {
-        document.getElementById('donate-modal').style.display = 'flex';
-    }
-    function closeDonateModal() {
-        document.getElementById('donate-modal').style.display = 'none';
-    }
-
-    // --- DRAWING ENGINE ---
-    function drawCourt() {
-        ctx.fillStyle = "#e0bb86";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const W = canvas.width, H = canvas.height;
-        ctx.lineWidth = 3; ctx.strokeStyle = "white"; ctx.lineCap = "round"; ctx.setLineDash([]);
-        ctx.beginPath();
-
-        if (state.courtType === 'full') {
-            const m = 20;
-            ctx.strokeRect(m, m, W-2*m, H-2*m);
-            const midY = H/2;
-            ctx.moveTo(m, midY); ctx.lineTo(W-m, midY);
-            ctx.moveTo(W/2+40, midY); ctx.arc(W/2, midY, 40, 0, Math.PI*2);
-            
-            // Top Hoop
-            ctx.strokeRect(W/2-60, m, 120, 100);
-            ctx.moveTo(W/2+40, m+100); ctx.arc(W/2, m+100, 40, 0, Math.PI);
-            ctx.moveTo(W/2+10, m+25); ctx.arc(W/2, m+25, 10, 0, Math.PI*2);
-            // Bottom Hoop
-            ctx.strokeRect(W/2-60, H-m-100, 120, 100);
-            ctx.moveTo(W/2+40, H-m-100); ctx.arc(W/2, H-m-100, 40, 0, Math.PI*2);
-            ctx.moveTo(W/2+10, H-m-25); ctx.arc(W/2, H-m-25, 10, 0, Math.PI*2);
-        } else {
-            const m = 20;
-            ctx.strokeRect(m, m, W-2*m, H-2*m);
-            const kw = W*0.35, kh = H*0.4;
-            ctx.strokeRect((W-kw)/2, m, kw, kh);
-            ctx.moveTo(W/2+kw/3, m+kh); ctx.arc(W/2, m+kh, kw/3, 0, Math.PI, false);
-            ctx.moveTo(W/2-30, m+30); ctx.lineTo(W/2+30, m+30);
-            ctx.moveTo(W/2+10, m+45); ctx.arc(W/2, m+45, 10, 0, Math.PI*2);
-            
-            // 3pt
-            const cy = m+(H*0.25), tpx = m+30;
-            ctx.moveTo(tpx, m); ctx.lineTo(tpx, cy);
-            ctx.moveTo(W-tpx, m); ctx.lineTo(W-tpx, cy);
-            ctx.moveTo(tpx, cy); ctx.bezierCurveTo(tpx, H*0.85, W-tpx, H*0.85, W-tpx, cy);
-        }
-        ctx.stroke();
-    }
-
-    function render() {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        drawCourt();
-
-        const frame = state.frames[state.currentFrame];
-        if (!frame) return;
-
-        // Draw Lines
-        frame.paths.forEach(path => {
-            if (path.points.length < 2) return;
-            ctx.beginPath();
-            ctx.strokeStyle = path.color;
-            ctx.lineWidth = 3;
-            if (path.type === 'dribble') ctx.setLineDash([10, 8]);
-            else if (path.type === 'pass') ctx.setLineDash([3, 5]);
-            else ctx.setLineDash([]); 
-
-            const start = normToPx(path.points[0]);
-            ctx.moveTo(start.x, start.y);
-            for(let i=1; i<path.points.length; i++){
-                const p = normToPx(path.points[i]);
-                ctx.lineTo(p.x, p.y);
-            }
-            ctx.stroke();
-
-            const end = normToPx(path.points[path.points.length-1]);
-            const prev = normToPx(path.points[Math.max(0, path.points.length-10)]) || normToPx(path.points[0]);
-            if (Math.hypot(end.x - prev.x, end.y - prev.y) > 5) drawArrow(ctx, prev, end, path.color);
-        });
-
-        renderObjectsDOM(frame.objects);
-        document.getElementById('seq-step-display').innerText = `${state.currentFrame + 1} / ${state.frames.length}`;
-        saveLocal();
-    }
-
-    function renderObjectsDOM(objects) {
-        objectsLayer.innerHTML = '';
-        objects.forEach(obj => {
-            const el = document.createElement('div');
-            el.className = 'draggable-obj';
-            el.style.left = (obj.x / LOGICAL_WIDTH * 100) + '%';
-            el.style.top = (obj.y / LOGICAL_HEIGHT * 100) + '%';
-            
-            if(obj.type === 'player') {
-                el.classList.add('drag-player');
-                el.style.background = 'var(--primary)';
-                el.innerText = obj.text;
-            } else if (obj.type === 'opponent') {
-                el.classList.add('drag-player');
-                el.style.background = 'var(--danger)';
-                el.innerText = obj.text;
-            } else if (obj.type === 'ball') {
-                el.classList.add('drag-ball');
-                el.innerText = '🏀';
-            } else if (obj.type === 'cone') {
-                el.classList.add('drag-cone');
-            } else if (obj.type === 'screen') {
-                el.classList.add('drag-screen');
-                el.innerText = 'T'; 
-            } else if (obj.type === 'text') {
-                el.classList.add('drag-text');
-                el.innerText = obj.text;
-            }
-
-            el.onmousedown = (e) => startDragObj(e, obj);
-            el.ontouchstart = (e) => { e.preventDefault(); startDragObj(e.touches[0], obj); };
-            objectsLayer.appendChild(el);
-        });
-    }
-
-    function drawArrow(ctx, from, to, color) {
-        const headlen = 12;
-        const angle = Math.atan2(to.y - from.y, to.x - from.x);
-        ctx.beginPath();
-        ctx.moveTo(to.x, to.y);
-        ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 6), to.y - headlen * Math.sin(angle - Math.PI / 6));
-        ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 6), to.y - headlen * Math.sin(angle + Math.PI / 6));
-        ctx.lineTo(to.x, to.y);
-        ctx.fillStyle = color;
-        ctx.fill();
-    }
-
-    // --- INTERACTION ---
-    function getNormalizedCoords(cX, cY) {
-        const rect = container.getBoundingClientRect();
-        return {
-            nx: ((cX - rect.left) / rect.width) * LOGICAL_WIDTH,
-            ny: ((cY - rect.top) / rect.height) * LOGICAL_HEIGHT
-        };
-    }
-
-    function handleStart(e) {
-        const coords = getNormalizedCoords(e.clientX, e.clientY);
         
-        if (state.settings.tool === 'eraser') {
-            const frame = state.frames[state.currentFrame];
-            // Delete objects near click
-            for (let i=frame.objects.length-1; i>=0; i--) {
-                const obj = frame.objects[i];
-                if (Math.hypot(coords.nx - obj.x, coords.ny - obj.y) < 30) {
-                    frame.objects.splice(i, 1);
-                    render(); showNotif("Object Removed"); return;
+        <div class="tool-group">
+            <button class="tool-btn active" onclick="setTool('move')">✋ Move</button>
+            <button class="tool-btn" onclick="setTool('cut')">➝ Cut</button>
+            <button class="tool-btn" onclick="setTool('dribble')">〰 Dribble</button>
+            <button class="tool-btn" onclick="setTool('pass')">--- Pass</button>
+            <button class="tool-btn danger" onclick="setTool('eraser')">⌫ Eraser</button>
+        </div>
+
+        <div class="tool-group">
+            <button class="tool-btn" onclick="toggleCourt()">🔄 Half/Full</button>
+            <select id="formation-select" onchange="loadFormation(this.value)">
+                <option value="">-- Formations --</option>
+                <option value="man">Man-to-Man</option>
+                <option value="2-3">2-3 Zone</option>
+                <option value="3-2">3-2 Zone</option>
+                <option value="5-out">5 Out</option>
+                <option value="4-1">4 Out 1 In</option>
+            </select>
+            <select id="quick-play-select" onchange="loadFormation(this.value)">
+                <option value="">-- Quick Plays --</option>
+                <option value="horns">Horns Set</option>
+                <option value="box">Box Set</option>
+            </select>
+        </div>
+
+        <div class="tool-group" style="border:none">
+            <button class="tool-btn danger" onclick="clearFrame()">🗑 Clear</button>
+            <button class="tool-btn" onclick="exportPlay()">💾 Save</button>
+            <button class="tool-btn" onclick="document.getElementById('file-in').click()">📂 Load</button>
+            <button class="tool-btn" onclick="window.print()">🖨 Print</button>
+            <input type="file" id="file-in" style="display:none" onchange="loadPlay(this)">
+        </div>
+    </div>
+
+    <div id="main-area">
+        <div id="canvas-container">
+            <div id="court-wrapper">
+                <canvas id="court-canvas" width="800" height="600"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div id="label-modal" class="modal-overlay">
+        <div class="input-box">
+            <input type="text" id="label-text" placeholder="Enter Label Text">
+            <button onclick="addLabel()">Add</button>
+            <button onclick="document.getElementById('label-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playClick() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        const wrapper = document.getElementById('court-wrapper');
+        const canvas = document.getElementById('court-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let tool = 'move';
+        let isDrawing = false;
+        let isFullCourt = false;
+        let objects = [];
+        let lines = [];
+        let startX, startY;
+
+        // --- PRESETS ---
+        const FORMATIONS = {
+            'man':  [{type:'atk',label:'1',x:400,y:150}, {type:'atk',label:'2',x:150,y:400}, {type:'atk',label:'3',x:650,y:400}, {type:'atk',label:'4',x:250,y:400}, {type:'atk',label:'5',x:550,y:400}],
+            '2-3':  [{type:'def',label:'X1',x:300,y:180}, {type:'def',label:'X2',x:500,y:180}, {type:'def',label:'X3',x:150,y:400}, {type:'def',label:'X4',x:400,y:400}, {type:'def',label:'X5',x:650,y:400}],
+            '3-2':  [{type:'def',label:'X1',x:400,y:150}, {type:'def',label:'X2',x:200,y:200}, {type:'def',label:'X3',x:600,y:200}, {type:'def',label:'X4',x:300,y:400}, {type:'def',label:'X5',x:500,y:400}],
+            '5-out':[{type:'atk',label:'1',x:400,y:100}, {type:'atk',label:'2',x:100,y:250}, {type:'atk',label:'3',x:700,y:250}, {type:'atk',label:'4',x:50,y:500}, {type:'atk',label:'5',x:750,y:500}],
+            '4-1':  [{type:'atk',label:'1',x:400,y:100}, {type:'atk',label:'2',x:150,y:200}, {type:'atk',label:'3',x:650,y:200}, {type:'atk',label:'4',x:200,y:400}, {type:'atk',label:'5',x:450,y:300}],
+            'horns':[{type:'atk',label:'1',x:400,y:150}, {type:'atk',label:'4',x:320,y:220}, {type:'atk',label:'5',x:480,y:220}, {type:'atk',label:'2',x:50,y:500}, {type:'atk',label:'3',x:750,y:500}],
+            'box':  [{type:'atk',label:'1',x:400,y:150}, {type:'atk',label:'4',x:300,y:300}, {type:'atk',label:'5',x:500,y:300}, {type:'atk',label:'2',x:300,y:450}, {type:'atk',label:'3',x:500,y:450}]
+        };
+
+        function drawCourt() {
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+            const W = 800; 
+            const H = isFullCourt ? 1000 : 600;
+
+            lines.forEach(l => {
+                ctx.beginPath();
+                ctx.strokeStyle = l.style === 'pass' ? 'black' : (l.style === 'dribble' ? 'blue' : '#333');
+                ctx.lineWidth = 3;
+                if(l.style === 'dribble') ctx.setLineDash([10, 5]); 
+                else if(l.style === 'pass') ctx.setLineDash([2, 5]); 
+                else ctx.setLineDash([]); 
+
+                const headlen = 10; const dx = l.x2 - l.x1; const dy = l.y2 - l.y1; const angle = Math.atan2(dy, dx);
+                ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+                ctx.beginPath(); ctx.setLineDash([]); ctx.moveTo(l.x2, l.y2);
+                ctx.lineTo(l.x2 - headlen * Math.cos(angle - Math.PI / 6), l.y2 - headlen * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(l.x2 - headlen * Math.cos(angle + Math.PI / 6), l.y2 - headlen * Math.sin(angle + Math.PI / 6));
+                ctx.lineTo(l.x2, l.y2); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+            });
+
+            ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 4; ctx.setLineDash([]);
+            ctx.strokeRect(20, 20, W-40, H-40);
+
+            if(!isFullCourt) {
+                ctx.beginPath(); ctx.arc(W/2, 300, 60, 0, Math.PI*2); ctx.stroke(); 
+                ctx.beginPath(); ctx.moveTo(W/2 - 250, 20); ctx.lineTo(W/2 - 250, 190); ctx.stroke(); 
+                ctx.beginPath(); ctx.moveTo(W/2 + 250, 20); ctx.lineTo(W/2 + 250, 190); ctx.stroke(); 
+                ctx.strokeRect(W/2 - 80, 20, 160, 190); 
+                ctx.beginPath(); ctx.arc(W/2, 120, 250, 0, Math.PI, false); ctx.stroke(); 
+                ctx.beginPath(); ctx.arc(W/2, 40, 10, 0, Math.PI*2); ctx.lineWidth=2; ctx.stroke();
+            } else {
+                ctx.beginPath(); ctx.moveTo(20, H/2); ctx.lineTo(W-20, H/2); ctx.stroke(); 
+                ctx.beginPath(); ctx.arc(W/2, H/2, 50, 0, Math.PI*2); ctx.stroke(); 
+                ctx.strokeRect(W/2 - 80, 20, 160, 190);
+                ctx.beginPath(); ctx.arc(W/2, 120, 250, 0, Math.PI, false); ctx.stroke();
+                ctx.strokeRect(W/2 - 80, H-210, 160, 190);
+                ctx.beginPath(); ctx.arc(W/2, H-120, 250, Math.PI, 0, false); ctx.stroke();
+            }
+        }
+
+        function renderObjects() {
+            document.querySelectorAll('.obj').forEach(e => e.remove());
+            objects.forEach((obj, idx) => {
+                const el = document.createElement('div');
+                el.className = `obj ${obj.type}`;
+                
+                if(obj.type === 'cone') el.innerText = '⚠️';
+                else if(obj.type === 'screen') el.innerText = '';
+                else el.innerText = obj.label;
+
+                el.style.left = obj.x + 'px'; el.style.top = obj.y + 'px';
+                el.onclick = function() { if(tool === 'eraser') { playClick(); objects.splice(idx, 1); renderObjects(); } }
+                
+                el.onmousedown = function(e) {
+                    if(tool !== 'move') return;
+                    e.preventDefault();
+                    let shiftX = e.clientX - el.getBoundingClientRect().left;
+                    let shiftY = e.clientY - el.getBoundingClientRect().top;
+                    const moveAt = (px, py) => { obj.x = px - shiftX - wrapper.getBoundingClientRect().left; obj.y = py - shiftY - wrapper.getBoundingClientRect().top; el.style.left = obj.x + 'px'; el.style.top = obj.y + 'px'; };
+                    const onMove = (e) => moveAt(e.clientX, e.clientY);
+                    document.addEventListener('mousemove', onMove);
+                    el.onmouseup = function() { document.removeEventListener('mousemove', onMove); el.onmouseup = null; };
+                };
+                wrapper.appendChild(el);
+            });
+        }
+
+        wrapper.onmousedown = function(e) {
+            if(tool === 'move') return;
+            const rect = wrapper.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            if(tool === 'eraser') {
+                lines = lines.filter(l => {
+                    const dist = Math.abs((l.y2-l.y1)*clickX - (l.x2-l.x1)*clickY + l.x2*l.y1 - l.y2*l.x1) / Math.sqrt(Math.pow(l.y2-l.y1,2) + Math.pow(l.x2-l.x1,2));
+                    return dist > 10; 
+                });
+                if(lines.length < lines.length) playClick();
+                drawCourt();
+                return;
+            }
+            startX = clickX; startY = clickY; isDrawing = true;
+        };
+
+        wrapper.onmouseup = function(e) {
+            if(!isDrawing) return;
+            const rect = wrapper.getBoundingClientRect();
+            lines.push({x1: startX, y1: startY, x2: e.clientX - rect.left, y2: e.clientY - rect.top, style: tool});
+            isDrawing = false; drawCourt(); playClick();
+        };
+
+        function setTool(t) {
+            playClick();
+            tool = t;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            if(event.target.tagName === 'BUTTON') event.target.classList.add('active');
+            wrapper.style.cursor = t === 'move' ? 'default' : (t === 'eraser' ? 'crosshair' : 'crosshair');
+        }
+
+        function addObj(type) {
+            playClick();
+            let label = '';
+            if(type === 'atk') label = prompt("Player Number?", (objects.filter(o=>o.type=='atk').length+1));
+            if(type === 'def') label = prompt("Defender Label?", "X" + (objects.filter(o=>o.type=='def').length+1));
+            if((type === 'atk' || type === 'def') && !label) return;
+            if(type === 'ball') label = '🏀';
+            objects.push({id: Date.now(), type, x: 400, y: 300, label: label || ''});
+            renderObjects();
+        }
+
+        function promptLabel() { document.getElementById('label-modal').style.display = 'flex'; }
+        function addLabel() {
+            const txt = document.getElementById('label-text').value;
+            if(txt) objects.push({id: Date.now(), type:'label', x: 400, y: 300, label: txt});
+            document.getElementById('label-modal').style.display = 'none'; renderObjects(); playClick();
+        }
+
+        function toggleCourt() {
+            playClick();
+            isFullCourt = !isFullCourt;
+            wrapper.style.height = isFullCourt ? '1000px' : '600px';
+            canvas.height = isFullCourt ? 1000 : 600;
+            drawCourt();
+        }
+
+        function loadFormation(key) {
+            if(!key) return;
+            if(confirm("Replace current board?")) {
+                clearFrame();
+                if(FORMATIONS[key]) {
+                    objects = JSON.parse(JSON.stringify(FORMATIONS[key]));
+                    renderObjects();
                 }
             }
-            if (frame.paths.length > 0) { frame.paths.pop(); render(); showNotif("Line Removed"); }
-            return;
+            document.getElementById('formation-select').value = "";
+            document.getElementById('quick-play-select').value = "";
         }
 
-        if (['cut', 'dribble', 'pass'].includes(state.settings.tool)) {
-            isDrawing = true;
-            currentPath = { type: state.settings.tool, color: state.settings.lineColor, points: [{x: coords.nx, y: coords.ny}] };
-            state.frames[state.currentFrame].paths.push(currentPath);
+        function clearFrame() { playClick(); objects = []; lines = []; renderObjects(); drawCourt(); }
+
+        function exportPlay() {
+            const data = JSON.stringify({ objects, lines, isFullCourt });
+            const blob = new Blob([data], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Play.json'; a.click();
         }
-    }
-
-    function handleMove(e) {
-        if (!isDrawing || !currentPath) return;
-        const coords = getNormalizedCoords(e.clientX, e.clientY);
-        currentPath.points.push({x: coords.nx, y: coords.ny});
-        render();
-    }
-
-    function handleEnd() { isDrawing = false; currentPath = null; saveLocal(); }
-
-    function startDragObj(e, obj) {
-        if(state.settings.tool !== 'move') return;
-        e.stopPropagation();
-        let isDragging = true;
-        
-        const moveHandler = (ev) => {
-            if(!isDragging) return;
-            const cX = ev.clientX || (ev.touches ? ev.touches[0].clientX : 0);
-            const cY = ev.clientY || (ev.touches ? ev.touches[0].clientY : 0);
-            const coords = getNormalizedCoords(cX, cY);
-            obj.x = Math.max(0, Math.min(LOGICAL_WIDTH, coords.nx));
-            obj.y = Math.max(0, Math.min(LOGICAL_HEIGHT, coords.ny));
-            render();
-        };
-        const upHandler = () => {
-            isDragging = false;
-            window.removeEventListener('mousemove', moveHandler);
-            window.removeEventListener('touchmove', moveHandler);
-            window.removeEventListener('mouseup', upHandler);
-            window.removeEventListener('touchend', upHandler);
-        };
-        window.addEventListener('mousemove', moveHandler);
-        window.addEventListener('touchmove', moveHandler, {passive: false});
-        window.addEventListener('mouseup', upHandler);
-        window.addEventListener('touchend', upHandler);
-    }
-
-    function normToPx(pt) {
-        return { x: (pt.x/LOGICAL_WIDTH)*canvas.width, y: (pt.y/LOGICAL_HEIGHT)*canvas.height };
-    }
-
-    // --- UI ACTIONS ---
-    function setTool(tool) {
-        state.settings.tool = tool;
-        document.querySelectorAll('.tool-sidebar .tool-btn').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById('tool-' + tool);
-        if(btn) btn.classList.add('active');
-        container.style.cursor = tool === 'move' ? 'default' : (tool === 'eraser' ? 'not-allowed' : 'crosshair');
-        showNotif("Tool: " + tool.toUpperCase());
-    }
-
-    function setColor(color, btn) {
-        state.settings.lineColor = color;
-        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-        btn.classList.add('active');
-    }
-
-    function toggleCourtType() {
-        state.courtType = state.courtType === 'half' ? 'full' : 'half';
-        render();
-    }
-
-    function addObj(type) {
-        const obj = { id: Date.now(), type: type, x: LOGICAL_WIDTH/2, y: LOGICAL_HEIGHT/2, text: '' };
-        
-        if(type === 'player') obj.text = prompt("Player Number:", "1") || "1";
-        if(type === 'opponent') obj.text = "x";
-        if(type === 'text') obj.text = prompt("Label Text:", "Note") || "Note";
-        
-        state.frames[state.currentFrame].objects.push(obj);
-        setTool('move'); // Auto-switch to move so they can position it
-        render();
-        showNotif("Added " + type);
-    }
-
-    function clearCanvas() {
-        if(confirm("Clear this frame?")) {
-            state.frames[state.currentFrame] = { objects: [], paths: [] };
-            render();
+        function loadPlay(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = JSON.parse(e.target.result);
+                if(data.objects) {
+                    objects = data.objects; lines = data.lines || []; isFullCourt = !!data.isFullCourt;
+                    if(isFullCourt) toggleCourt(); 
+                    renderObjects(); drawCourt();
+                }
+            };
+            reader.readAsText(file);
         }
-    }
 
-    function addFrame() {
-        const lastFrame = state.frames[state.currentFrame];
-        const newFrame = { objects: JSON.parse(JSON.stringify(lastFrame.objects)), paths: [] };
-        state.frames.splice(state.currentFrame + 1, 0, newFrame);
-        state.currentFrame++;
-        render();
-    }
-
-    function deleteFrame() {
-        if(state.frames.length <= 1) return;
-        if(confirm("Delete this frame?")) {
-            state.frames.splice(state.currentFrame, 1);
-            if(state.currentFrame >= state.frames.length) state.currentFrame = state.frames.length - 1;
-            render();
-        }
-    }
-
-    function nextFrame() { if(state.currentFrame < state.frames.length-1) { state.currentFrame++; render(); } }
-    function prevFrame() { if(state.currentFrame > 0) { state.currentFrame--; render(); } }
-
-    function toggleAnimation() {
-        const btn = document.getElementById('play-anim-btn');
-        if(isPlaying) {
-            clearInterval(animInterval);
-            isPlaying = false;
-            btn.innerText = "▶ Play Animation";
-            btn.classList.replace('btn-red', 'btn-green');
-        } else {
-            isPlaying = true;
-            state.currentFrame = 0;
-            render();
-            btn.innerText = "◼ Stop";
-            btn.classList.replace('btn-green', 'btn-red');
-            animInterval = setInterval(() => {
-                if(state.currentFrame < state.frames.length - 1) { state.currentFrame++; render(); } 
-                else { clearInterval(animInterval); isPlaying = false; btn.innerText = "▶ Play Animation"; btn.classList.replace('btn-red', 'btn-green'); }
-            }, 1000);
-        }
-    }
-
-    function loadFormation(type) {
-        if(!confirm("Overwrite frame with formation?")) return;
-        const formations = {
-            'man': [{t:'player',txt:'1',x:250,y:400}, {t:'player',txt:'2',x:450,y:300}, {t:'player',txt:'3',x:50,y:300}, {t:'player',txt:'4',x:450,y:50}, {t:'player',txt:'5',x:50,y:50}],
-            '23': [{t:'opponent',txt:'x1',x:170,y:350}, {t:'opponent',txt:'x2',x:330,y:350}, {t:'opponent',txt:'x3',x:80,y:100}, {t:'opponent',txt:'x4',x:250,y:100}, {t:'opponent',txt:'x5',x:420,y:100}],
-            '5out': [{t:'player',txt:'1',x:250,y:400}, {t:'player',txt:'2',x:450,y:300}, {t:'player',txt:'3',x:50,y:300}, {t:'player',txt:'4',x:480,y:50}, {t:'player',txt:'5',x:20,y:50}],
-        };
-        const setup = formations[type] || formations['man'];
-        const newObjs = setup.map(p => ({ id: Date.now()+Math.random(), type: p.t, text: p.txt, x: p.x, y: p.y }));
-        newObjs.push({id: Date.now(), type: 'ball', x: 250, y: 380});
-        state.frames[state.currentFrame].objects = newObjs;
-        state.courtType = 'half';
-        render();
-    }
-
-    function loadPreset() {
-        const val = document.getElementById('preset-select').value;
-        if(!val) return;
-        loadFormation('man');
-        const f = state.frames[state.currentFrame];
-        if(val === 'horns') {
-            f.objects[3].x = 180; f.objects[3].y = 300; 
-            f.objects[4].x = 320; f.objects[4].y = 300; 
-            f.objects[1].x = 480; f.objects[1].y = 20; 
-            f.objects[2].x = 20; f.objects[2].y = 20; 
-        } else if(val === 'box') {
-             f.objects[3].x = 180; f.objects[3].y = 100;
-             f.objects[4].x = 320; f.objects[4].y = 100;
-             f.objects[1].x = 320; f.objects[1].y = 300;
-             f.objects[2].x = 180; f.objects[2].y = 300;
-        }
-        render();
-    }
-
-    // --- SAVE/LOAD ---
-    function saveLocal() { localStorage.setItem(DATA_KEY, JSON.stringify(state)); }
-    function loadLocalData() {
-        const d = localStorage.getItem(DATA_KEY);
-        if(d) { try { state = JSON.parse(d); render(); } catch(e){} } else { loadFormation('man'); }
-    }
-    function exportPlayJSON() {
-        const name = document.getElementById('play-save-name').value || 'basketball-play';
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
-        const a = document.createElement('a'); a.href = dataStr; a.download = name + ".json"; a.click();
-    }
-    function openImport() { document.getElementById('imp-file').click(); }
-    function loadPlayJSON(input) {
-        const file = input.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try { state = JSON.parse(e.target.result); state.currentFrame = 0; render(); showNotif("Play Loaded"); } 
-            catch(err) { alert("Invalid File"); }
-        };
-        reader.readAsText(file);
-    }
-    function showNotif(msg) {
-        const n = document.getElementById('notification');
-        n.innerText = msg; n.style.opacity = 1; setTimeout(() => n.style.opacity = 0, 2000);
-    }
-</script>
+        drawCourt();
+    </script>
 </body>
 </html>

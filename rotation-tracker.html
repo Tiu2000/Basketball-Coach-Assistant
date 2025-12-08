@@ -2,515 +2,443 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TIU Rotation & Time Tracker</title>
+    <title>Rotation Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
     <style>
-        /* --- GLOBAL & THEME --- */
-        :root {
-            --primary: #1a237e;     /* Deep Blue */
-            --accent: #ff6f00;      /* Basketball Orange */
-            --bg: #f0f2f5;
-            --success: #2e7d32;
-            --danger: #c62828;
-            --equity: #0097a7;
-            --cashapp: #00D632;     /* Cash App Green */
-            --dark-panel: #222;
-        }
+        :root { --bg: #222; --text: #eee; --card-bg: #333; --green: #2e7d32; --red: #c62828; --blue: #1565c0; --gold: #ff8f00; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; display: flex; flex-direction: column; height: 98vh; margin:0; overflow: hidden; }
         
-        * { box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg); 
-            color: #333; 
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh; 
+        /* HEADER */
+        .header { 
+            background: #111; padding: 8px 15px; border-radius: 6px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border: 1px solid #444; flex-shrink: 0;
+        }
+        .header h2 { margin: 0; font-size: 1.2rem; }
+        
+        /* DASHBOARD */
+        .dashboard {
+            display: flex; gap: 15px; background: black; padding: 8px 15px; margin-top: 10px;
+            border-radius: 6px; border: 1px solid #444; align-items: center; flex-shrink: 0;
+            justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* --- NAVIGATION --- */
-        .app-nav {
-            background: var(--primary);
-            display: flex;
-            justify-content: center;
-            padding: 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+        .clock-section { display: flex; align-items: center; gap: 15px; }
+        
+        /* DIGITAL CLOCK STYLE */
+        .clock-display { 
+            font-size: 2.5rem; font-family: 'Roboto Mono', monospace; font-weight: 700; 
+            color: white; line-height: 1; letter-spacing: 2px;
+            background: #111; padding: 5px 10px; border-radius: 4px; border: 1px solid #333;
         }
-        .nav-btn {
-            background: transparent;
-            border: none;
-            color: rgba(255,255,255,0.6);
-            padding: 15px 20px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 4px solid transparent;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+        .clock-display.active { color: #00e676; border-color: #00e676; text-shadow: 0 0 8px rgba(0,230,118,0.4); }
+        .q-badge { background: #333; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #aaa; font-size: 1.2rem; }
+
+        .tracker-section { display: flex; gap: 20px; font-size: 0.8rem; border-left: 1px solid #444; padding-left: 20px; }
+        .tracker-group { display: flex; flex-direction: column; gap: 4px; }
+        .tracker-row { display: flex; align-items: center; gap: 6px; }
+        .adj-btn { width: 22px; height: 22px; background: #444; color: white; border: none; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .adj-btn:hover { background: #666; }
+
+        .to-dot { width: 10px; height: 10px; background: #444; border-radius: 50%; display: inline-block; }
+        .to-dot.active { background: var(--gold); box-shadow: 0 0 5px var(--gold); }
+        
+        .control-section { display: flex; gap: 8px; }
+
+        /* COURT */
+        .court-container { display: flex; gap: 10px; flex: 1; overflow: hidden; margin-top: 10px; }
+        .column { flex: 1; background: #1a1a1a; padding: 5px; border-radius: 6px; display: flex; flex-direction: column; border: 1px solid #444; }
+        .col-header { text-align: center; font-weight: bold; padding: 5px; border-bottom: 1px solid #333; margin-bottom: 5px; font-size: 0.9rem; text-transform: uppercase; }
+
+        #court-list, #bench-list { overflow-y: auto; flex: 1; padding-right: 2px; }
+        
+        .player-card { 
+            background: var(--card-bg); padding: 6px 8px; margin-bottom: 5px; border-radius: 4px; 
+            cursor: pointer; border-left: 3px solid #555; position: relative; font-size: 0.9rem;
         }
-        .nav-btn:hover { color: white; background: rgba(255,255,255,0.05); }
-        .nav-btn.active { color: white; border-bottom-color: var(--accent); background: rgba(255,255,255,0.1); }
+        .player-card:hover { background: #444; }
+        .player-card.active { border-left-color: var(--green); background: #263238; }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;}
+        .card-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+        /* BARS WITH NUMBERS */
+        .bars-container { display: flex; flex-direction: column; gap: 3px; }
         
-        /* Cash App Nav Button Style */
-        .nav-btn.donate-btn { color: var(--cashapp); }
-        .nav-btn.donate-btn:hover { color: #fff; text-shadow: 0 0 5px var(--cashapp); }
-
-        /* --- SHARED COMPONENTS --- */
-        .action-btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: 0.2s; }
-        .btn-blue { background: var(--primary); color: white; }
-        .btn-orange { background: var(--accent); color: white; }
-        .btn-red { background: var(--danger); color: white; }
-        .btn-green { background: var(--success); color: white; }
+        .bar-row { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #aaa; }
+        .bar-label { width: 45px; flex-shrink: 0; }
         
-        /* WIDE PANEL UPDATE */
-        .panel { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin: 20px auto; max-width: 95%; }
-
-        /* ========================================= */
-        /* TAB 1: ROTATION TRACKER STYLES */
-        /* ========================================= */
-        .tr-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-        .tr-brand h2 { margin: 0; color: var(--primary); }
-        .clock-container { display: flex; flex-direction: column; align-items: flex-end; margin-left: 10px; }
-        .game-clock { font-family: 'Courier New', monospace; font-size: 2rem; font-weight: bold; color: #333; }
-        .clock-top-row { display: flex; align-items: center; }
+        .bar-track { flex: 1; height: 12px; background: #111; border-radius: 3px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.5s; position: absolute; left: 0; top: 0; }
+        .fill-fatigue { background: linear-gradient(90deg, #66bb6a, #ffeb3b, #f44336); }
+        .fill-equity { background: var(--blue); }
         
-        .mode-container { display: flex; justify-content: center; align-items: center; background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 20px; gap: 15px; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--equity); }
-        input:checked + .slider:before { transform: translateX(22px); }
-
-        .game-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .game-board { grid-template-columns: 1fr; } }
-        .court-area, .bench-area { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
-        .court-area { border: 2px solid var(--primary); }
-
-        .player-card { display: flex; align-items: center; background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
-        .pos-badge { background: #eee; color: #555; font-size: 0.75rem; font-weight: bold; padding: 4px; border-radius: 4px; margin-right: 10px; width: 35px; text-align: center; }
-        .player-info { flex: 1; }
-        .bar-container { height: 6px; background: #eee; border-radius: 3px; margin-top: 5px; width: 100%; overflow: hidden; }
-        .status-bar { height: 100%; transition: width 0.5s, background-color 0.5s; }
-
-        /* --- MODAL --- */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; max-width: 600px; padding: 20px; border-radius: 8px; text-align: center; }
-        #notification { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
-        
-        .cash-app-btn {
-            background-color: var(--cashapp);
-            color: white;
-            font-weight: bold;
-            font-size: 1.1rem;
-            padding: 12px 25px;
-            border-radius: 30px;
-            text-decoration: none;
-            display: inline-block;
-            margin: 15px 0;
-            border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
+        /* The number overlay */
+        .bar-text { 
+            position: absolute; width: 100%; text-align: center; 
+            font-size: 0.65rem; color: white; line-height: 12px; 
+            text-shadow: 0 0 2px black; font-weight: bold; z-index: 2;
         }
-        .cash-app-btn:hover { transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; font-size: 0.85rem; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-green { background: var(--green); }
+        .btn-red { background: var(--red); }
+        .btn-blue { background: var(--blue); }
+        .btn-gray { background: #555; }
+        .btn-gold { background: var(--gold); color: black; }
+
+        /* MODALS */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #333; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%; }
+        textarea { width: 100%; height: 100px; background: #222; color: white; border: 1px solid #555; padding: 10px; margin: 10px 0; }
+        input[type="number"] { padding: 5px; background: #222; border: 1px solid #555; color: white; width: 60px; }
 
         @media print {
-            .app-nav, .add-controls, .data-controls, .mode-container, #coach-feedback { display: none !important; }
-            body { background: white !important; }
-            .panel { box-shadow: none; border: 1px solid #ccc; max-width: 100%; }
+            body { background: white; color: black; display: block; height: auto; overflow: visible; }
+            .header, .dashboard, .btn, .modal { display: none !important; }
+            .column { background: white; border: 1px solid #ccc; color: black; }
+            .player-card { background: white; border: 1px solid #ddd; color: black; }
+            .bar-track { background: #eee; }
+            .bar-text { color: black; text-shadow: none; }
         }
     </style>
 </head>
 <body>
 
-    <nav class="app-nav">
-        <button class="nav-btn active">Rotation & Time</button>
-        <a href="stat-recorder.html" class="nav-btn">Stat Recorder</a>
-        <a href="play-designer.html" class="nav-btn">Play Designer</a>
-        <button class="nav-btn" id="sound-toggle" onclick="toggleSound()" title="Toggle Sound">🔊</button>
-        <button class="nav-btn donate-btn" onclick="openDonateModal()">$ Support</button>
-    </nav>
+    <div class="header">
+        <h2>Rotation Manager</h2>
+        <div style="display:flex; gap:5px;">
+            <button class="btn btn-blue" onclick="toggleModal('settings-modal')">⚙️</button>
+            <button class="btn btn-gold" onclick="generateGamePlan()">📋 Plan</button>
+            <button class="btn btn-gray" onclick="toggleModal('bulk-modal')">📝 Add</button>
+            <button class="btn btn-gray" onclick="exportData()">💾 Save</button>
+            <label class="btn btn-gray" style="cursor:pointer">
+                📂 <input type="file" hidden onchange="importData(this)">
+            </label>
+        </div>
+    </div>
 
-    <div id="notification">Action Recorded</div>
+    <div class="dashboard">
+        <div class="clock-section">
+            <div class="clock-display" id="clock">08:00</div>
+            <div class="q-badge" id="q-val">Q1</div>
+            <button class="btn btn-gray" style="padding:4px 8px" onclick="playBuzzer()" title="Sound Horn">🔊</button>
+        </div>
 
-    <div id="view-tracker" class="view-section">
-        <div class="panel">
-            <div class="tr-header">
-                <div class="tr-brand">
-                    <h2>Game Tracker</h2>
-                    <span style="color:#777">Manage Substitutions & Fatigue</span>
-                </div>
-                <div class="clock-container">
-                    <div class="clock-top-row">
-                        <span style="background:var(--accent); color:white; padding:4px 8px; border-radius:4px;" id="quarter-display">Q1</span>
-                        <span class="game-clock" id="clock-display">08:00</span>
-                        <button class="action-btn btn-blue" onclick="openSettings()" style="background:#555; padding:4px 8px; margin-left:10px; border-radius: 50%; width: 30px; height: 30px; display:flex; justify-content:center; align-items:center;">⚙️</button>
-                    </div>
-                    <div style="font-size:0.8rem; margin-top:5px; color:#777;">
-                        Home TO: <strong id="home-to-display">3</strong> | Guest TO: <strong id="guest-to-display">3</strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mode-container">
-                <span style="font-weight:bold; color:#777">Fatigue Mode</span>
-                <label class="switch">
-                    <input type="checkbox" id="mode-switch" onchange="toggleMode()">
-                    <span class="slider round"></span>
-                </label>
-                <span style="font-weight:bold; color:#777">Equity Mode</span>
-            </div>
-
-            <div class="controls-row" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; justify-content: center;">
-                <button id="game-toggle" class="action-btn btn-green" style="flex:2; padding:12px; font-size:1.1rem;" onclick="toggleGame()">Start Clock</button>
-                <button id="next-q-btn" class="action-btn btn-blue" style="flex:1; display:none;" onclick="nextQuarter()">Start Next Q</button>
-                <button class="action-btn btn-blue" onclick="openPlanner()">Auto-Plan</button>
-                <button class="action-btn" style="background:#888; color:white;" onclick="callTimeout('home')">Home TO</button>
-                <button class="action-btn" style="background:#888; color:white;" onclick="callTimeout('guest')">Guest TO</button>
-            </div>
-
-            <div id="coach-feedback" style="background:#e0f7fa; padding:10px; margin-bottom:15px; border-radius:4px; display:none; border-left:4px solid var(--equity);">
-                <span id="feedback-text"></span>
-                <button class="action-btn btn-blue" style="float:right; padding:4px 8px;" onclick="applySuggestion()">Swap</button>
-            </div>
-
-            <div class="game-board">
-                <div class="court-area">
-                    <h3 style="margin-top:0; border-bottom:1px solid #eee;">On Court <span id="court-count">0/5</span></h3>
-                    <div id="court-list"></div>
-                </div>
-                <div class="bench-area">
-                    <h3 style="margin-top:0; border-bottom:1px solid #eee;">Bench</h3>
-                    <div id="bench-list"></div>
+        <div class="tracker-section">
+            <div class="tracker-group">
+                <div style="color:#aaa; font-size:0.7rem">TIMEOUTS</div>
+                <div class="tracker-row">
+                    <button class="adj-btn" onclick="adjTO(-1)">-</button>
+                    <span id="to-dots" style="white-space:nowrap"></span>
+                    <button class="adj-btn" onclick="adjTO(1)">+</button>
+                    <small onclick="resetTimeouts()" style="cursor:pointer; color:#888; margin-left:2px" title="Reset">↺</small>
                 </div>
             </div>
-
-            <div class="add-controls" style="background:#f8f9fa; padding:15px; margin-top:20px; border-radius:8px; display:flex; gap:10px; justify-content:center; flex-wrap: wrap;">
-                <input type="text" id="player-name" placeholder="New Player Name" style="padding:8px; flex: 1; min-width: 120px;">
-                <select id="player-position" style="padding:8px;">
-                    <option value="PG">PG</option><option value="SG">SG</option>
-                    <option value="SF">SF</option><option value="PF">PF</option><option value="C">C</option>
-                </select>
-                <button class="action-btn btn-blue" onclick="addPlayer()">+ Add</button>
-                <button class="action-btn btn-green" onclick="openBulkImport()">Bulk Import</button>
-                <button class="action-btn btn-orange" onclick="generateRecommendation()">Suggest Sub</button>
+            <div class="tracker-group">
+                <div style="color:#aaa; font-size:0.7rem">TEAM FOULS</div>
+                <div class="tracker-row">
+                    <button class="adj-btn" onclick="adjFouls(-1)">-</button>
+                    <span id="team-fouls" style="font-weight:bold; min-width:15px; text-align:center">0</span>
+                    <button class="adj-btn" onclick="adjFouls(1)">+</button>
+                </div>
             </div>
+        </div>
 
-            <div class="data-controls" style="margin-top:20px; text-align:center;">
-                <button class="action-btn" style="border:1px solid #ccc" onclick="exportTimeStats()">Export Time CSV</button>
-                <button class="action-btn" style="border:1px solid #ccc" onclick="window.print()">Print Report</button>
-                <button class="action-btn btn-red" onclick="resetAll()">New Game (Reset All)</button>
-            </div>
+        <div class="control-section">
+            <button class="btn btn-green" onclick="toggleClock(true)">▶ START</button>
+            <button class="btn btn-red" onclick="toggleClock(false)">⏸ STOP</button>
+            <button class="btn btn-gray" onclick="resetClock()">↺ RESET</button>
+            <button class="btn btn-gold" onclick="nextQ()">NEXT Q</button>
+        </div>
+    </div>
+
+    <div class="court-container">
+        <div class="column">
+            <div class="col-header" style="color:#66bb6a">On Court</div>
+            <div id="court-list"></div>
+        </div>
+        <div class="column">
+            <div class="col-header" style="color:#bdbdbd">Bench</div>
+            <div id="bench-list"></div>
         </div>
     </div>
 
     <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <h3>Game Settings</h3>
-            <div style="margin-bottom:15px;">
-                <label for="setting-quarter-length" style="display:block; margin-bottom:5px; font-weight:bold;">Quarter Length (Minutes):</label>
-                <input type="number" id="setting-quarter-length" min="1" max="15" value="8" style="padding:8px; width:100%; border:1px solid #ccc; border-radius:4px;">
+        <div class="modal-box">
+            <h3>Settings</h3>
+            <div style="margin-bottom:10px; display:flex; justify-content:space-between;">
+                <label>Qtr Length (min):</label><input type="number" id="cfg-qlen" value="8">
             </div>
-            <div style="margin-bottom:15px;">
-                <label for="setting-timeouts" style="display:block; margin-bottom:5px; font-weight:bold;">Total Timeouts (Per Team):</label>
-                <input type="number" id="setting-timeouts" min="0" max="10" value="3" style="padding:8px; width:100%; border:1px solid #ccc; border-radius:4px;">
+            <div style="margin-bottom:10px; display:flex; justify-content:space-between;">
+                <label>Timeouts:</label><input type="number" id="cfg-max-to" value="3">
             </div>
-            <button class="action-btn btn-green" onclick="saveSettings()" style="width:100%; margin-bottom:10px;">Save Settings & Reset Game</button>
-            <button class="action-btn" onclick="document.getElementById('settings-modal').style.display='none'" style="width:100%; border:1px solid #ccc;">Close</button>
-        </div>
-    </div>
-    
-    <div id="donate-modal" class="modal">
-        <div class="modal-content">
-            <h2 style="color:var(--primary); margin-top:0;">Support the App</h2>
-            <p>If you find this tool useful, consider supporting future development!</p>
-            
-            <a href="https://cash.app/$AnthonyTiu" target="_blank" class="cash-app-btn">
-                $ Donate via Cash App
-            </a>
-            
-            <p style="font-size:0.8rem; color:#666;">(Links open in a new tab)</p>
-            <button class="action-btn btn-gray" onclick="closeDonateModal()">Close</button>
-        </div>
-    </div>
-    
-    <div id="planner-modal" class="modal">
-        <div class="modal-content">
-            <h3>Auto-Scheduler</h3>
-            <p>Generates a fair rotation plan for 8 shifts (start and middle of each quarter).</p>
-            <button class="action-btn btn-blue" onclick="generatePlan()">Generate</button>
-            <button class="action-btn" onclick="document.getElementById('planner-modal').style.display='none'">Close</button>
-            <div id="plan-container" style="margin-top:15px; max-height:300px; overflow-y:auto;"></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;">
+                <label>Foul Limit:</label><input type="number" id="cfg-foul-limit" value="5">
+            </div>
+            <div style="text-align:right">
+                <button class="btn btn-gray" onclick="toggleModal('settings-modal')">Cancel</button>
+                <button class="btn btn-green" onclick="saveSettings()">Save</button>
+            </div>
         </div>
     </div>
 
     <div id="bulk-modal" class="modal">
-        <div class="modal-content">
-            <h3>Bulk Import Roster</h3>
-            <p>Paste list below. Format: <b>Name, Position</b> per line.<br><small>Example: LeBron James, SF</small></p>
-            <textarea id="bulk-input" rows="8" style="width:100%; margin-bottom:10px; padding:10px; font-family:monospace;" placeholder="John Doe, PG&#10;Jane Smith, C"></textarea>
-            <button class="action-btn btn-green" style="width:100%; margin-bottom:10px;" onclick="processBulkImport()">Import Players</button>
-            <button class="action-btn btn-red" style="width:100%;" onclick="document.getElementById('bulk-modal').style.display='none'">Cancel</button>
+        <div class="modal-box">
+            <h3>Add Players</h3>
+            <textarea id="bulk-text" placeholder="Paste names here..."></textarea>
+            <div style="text-align:right">
+                <button class="btn btn-gray" onclick="toggleModal('bulk-modal')">Cancel</button>
+                <button class="btn btn-green" onclick="processBulk()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="plan-modal" class="modal">
+        <div class="modal-box" style="width:500px">
+            <h3>Rotation Plan</h3>
+            <div id="plan-content" style="max-height:300px; overflow-y:auto; margin-bottom:10px; font-size:0.9rem"></div>
+            <button class="btn btn-gray" onclick="toggleModal('plan-modal')">Close</button>
         </div>
     </div>
 
     <script>
-        const STORE_KEY = 'tiu_ultimate_suite_v2'; 
-        let trPlayers = []; let stPlayers = []; let statHistory = [];
-        let currentQuarter = 1; let gameSeconds = 8 * 60; let gameActive = false;
-        let timerInterval = null; let equityMode = false;
-        let quarterLengthInMinutes = 8; let totalTimeoutsPerTeam = 3; 
-        let homeTimeoutsRemaining = 3; let guestTimeoutsRemaining = 3;
-
-        // --- SOUND ENGINE ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let soundEnabled = true;
-
-        function toggleSound() {
-            soundEnabled = !soundEnabled;
-            const btn = document.getElementById('sound-toggle');
-            if(btn) btn.textContent = soundEnabled ? "🔊" : "🔇";
+        // --- DATA & SAFETY CHECKS ---
+        let roster = JSON.parse(localStorage.getItem('tiu_roster')) || [];
+        let config = JSON.parse(localStorage.getItem('tiu_config')) || { qLen: 8, maxTO: 3, foulLimit: 5 };
+        
+        let savedClock = JSON.parse(localStorage.getItem('tiu_clock_data'));
+        
+        // Strict Validation to prevent NaN
+        let clock = { min: config.qLen, sec: 0, run: false, q: 1 };
+        
+        if (savedClock && !isNaN(savedClock.min) && !isNaN(savedClock.sec) && !isNaN(savedClock.q)) {
+            clock = savedClock;
         }
 
-        function playSound(type) {
-            if (!soundEnabled) return;
+        let timeouts = config.maxTO; 
+        let teamFouls = 0;
+        let timerInt = null;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playBuzzer() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
-
-            if (type === 'click') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'whistle') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(2000, now); osc.frequency.linearRampToValueAtTime(1500, now + 0.3);
-                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            } else if (type === 'buzzer') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now);
-                gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.linearRampToValueAtTime(0, now + 1.5);
-                osc.start(now); osc.stop(now + 1.5);
-            } else if (type === 'success') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
-                osc.start(now); osc.stop(now + 0.3);
-            }
+            osc.type = 'sawtooth'; 
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 1); 
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.5);
         }
 
-        window.onload = () => {
-            loadData();
-            const modeSwitch = document.getElementById('mode-switch');
-            if (modeSwitch) equityMode = modeSwitch.checked;
+        window.onload = () => { 
+            document.getElementById('cfg-qlen').value = config.qLen;
+            document.getElementById('cfg-max-to').value = config.maxTO;
+            document.getElementById('cfg-foul-limit').value = config.foulLimit;
+            render(); renderTimeouts();
+            if(clock.run) toggleClock(true);
         };
 
-        function loadData() {
-            const saved = localStorage.getItem(STORE_KEY);
-            if(saved) {
-                const data = JSON.parse(saved);
-                trPlayers = data.trPlayers || [];
-                stPlayers = data.stPlayers || [];
-                currentQuarter = data.currentQuarter || 1;
-                quarterLengthInMinutes = data.quarterLengthInMinutes || 8;
-                totalTimeoutsPerTeam = data.totalTimeoutsPerTeam || 3;
-                homeTimeoutsRemaining = data.homeTimeoutsRemaining !== undefined ? data.homeTimeoutsRemaining : totalTimeoutsPerTeam;
-                guestTimeoutsRemaining = data.guestTimeoutsRemaining !== undefined ? data.guestTimeoutsRemaining : totalTimeoutsPerTeam;
-                gameSeconds = data.gameSeconds !== undefined && data.gameSeconds > 0 ? data.gameSeconds : quarterLengthInMinutes * 60;
-                statHistory = data.statHistory || [];
-            }
-            renderTracker(); updateClockUI(); updateTimeoutsUI();
-        }
-
-        function saveData() {
-            const data = { trPlayers, stPlayers, currentQuarter, gameSeconds, statHistory, quarterLengthInMinutes, totalTimeoutsPerTeam, homeTimeoutsRemaining, guestTimeoutsRemaining };
-            localStorage.setItem(STORE_KEY, JSON.stringify(data));
-        }
-
-        function resetAll() {
-            if(confirm("Clear ALL data and Roster?")) {
-                localStorage.removeItem(STORE_KEY); location.reload();
+        function toggleClock(state) {
+            clock.run = state;
+            updateUI();
+            if(state) {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                clearInterval(timerInt);
+                timerInt = setInterval(tick, 1000);
+            } else {
+                clearInterval(timerInt);
+                save();
             }
         }
-        function formatTime(s) {
-            const m = Math.floor(s/60); const sec = s%60;
-            return `${m}:${sec<10?'0':''}${sec}`;
-        }
-        function showNotif(msg) {
-            const n = document.getElementById('notification'); n.innerText = msg; n.style.opacity = 1;
-            setTimeout(() => n.style.opacity = 0, 2000);
-        }
-        function downloadCSV(content, filename) {
-            const blob = new Blob([content], {type:'text/csv;charset=utf-8;'});
-            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click();
-        }
 
-        function addPlayer() {
-            const name = document.getElementById('player-name').value.trim();
-            const pos = document.getElementById('player-position').value;
-            if(!name) return;
-            createPlayer(name, pos);
-            playSound('click');
-            document.getElementById('player-name').value = ''; showNotif(`Added ${name}`);
-        }
-        function createPlayer(name, pos) {
-            const newId = Date.now() + Math.random();
-            trPlayers.push({ id: newId, name: name, position: pos, totalTime: 0, currentFatigue: 0, isOnCourt: false, recoveryCounter: 0 });
-            stPlayers.push({ id: newId, name: name, stats: { ft: 0, fg: 0, zp: 0, reb: 0, ast: 0, stl: 0, blk: 0, to: 0, pf: 0 } });
-            saveData(); renderTracker();
-        }
-        function openBulkImport() { playSound('click'); document.getElementById('bulk-modal').style.display = 'flex'; }
-        function processBulkImport() {
-            const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
-            const lines = raw.split('\n');
-            lines.forEach(line => {
-                const parts = line.split(',');
-                if(parts.length > 0 && parts[0].trim()) {
-                    const name = parts[0].trim();
-                    const pos = parts[1] ? parts[1].trim().toUpperCase() : 'PG'; 
-                    createPlayer(name, pos);
+        function tick() {
+            // Self-healing: if corrupted during runtime, reset
+            if(isNaN(clock.min) || isNaN(clock.sec)) { 
+                clock.min = config.qLen; clock.sec = 0; 
+                toggleClock(false);
+            }
+
+            if(clock.sec === 0) {
+                if(clock.min === 0) { 
+                    toggleClock(false); 
+                    playBuzzer(); 
+                    return; 
+                }
+                clock.min--; clock.sec = 59;
+            } else { clock.sec--; }
+            
+            roster.forEach(p => { 
+                if(p.onCourt) { 
+                    p.shiftTime=(p.shiftTime||0)+1; 
+                    p.totalTime=(p.totalTime||0)+1; 
                 }
             });
-            playSound('success');
-            document.getElementById('bulk-modal').style.display = 'none'; document.getElementById('bulk-input').value = '';
+            save(); render();
         }
 
-        function toggleGame() {
-            if(gameSeconds <= 0 && !gameActive) return;
-            gameActive = !gameActive;
-            playSound('whistle');
-            const btn = document.getElementById('game-toggle');
-            if(gameActive) {
-                btn.textContent = "Pause Clock"; btn.className = "action-btn btn-red";
-                document.getElementById('next-q-btn').style.display = 'none';
-                timerInterval = setInterval(gameTick, 1000);
-            } else {
-                btn.textContent = "Resume Clock"; btn.className = "action-btn btn-green";
-                clearInterval(timerInterval); saveData();
+        function resetClock() { 
+            toggleClock(false); 
+            clock.min = config.qLen; 
+            clock.sec = 0; 
+            save(); 
+            render(); 
+        }
+        
+        function nextQ() { 
+            toggleClock(false); clock.q++; clock.min=config.qLen; clock.sec=0; 
+            roster.forEach(p => p.shiftTime=0); 
+            teamFouls = 0; document.getElementById('team-fouls').innerText = 0;
+            save(); render(); 
+        }
+
+        function render() {
+            const m = (isNaN(clock.min) ? config.qLen : clock.min);
+            const s = (isNaN(clock.sec) ? 0 : clock.sec);
+            document.getElementById('clock').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+            document.getElementById('q-val').innerText = "Q" + clock.q;
+            
+            const cList = document.getElementById('court-list');
+            const bList = document.getElementById('bench-list');
+            cList.innerHTML = ""; bList.innerHTML = "";
+
+            roster.forEach(p => {
+                const fmt = (time) => {
+                    if (isNaN(time)) return "0:00";
+                    const tm = Math.floor(time/60);
+                    const ts = (Math.floor(time)%60).toString().padStart(2,'0');
+                    return `${tm}:${ts}`;
+                };
+                
+                // Visual percentages
+                const fPct = Math.min(100, (p.shiftTime/300)*100);
+                const ePct = Math.min(100, (p.totalTime/1200)*100); 
+
+                const div = document.createElement('div');
+                div.className = `player-card ${p.onCourt ? 'active' : ''}`;
+                div.onclick = () => togglePlayer(p.id);
+                div.innerHTML = `
+                    <div class="card-top">
+                        <span class="card-name">${p.name}</span> 
+                    </div>
+                    <div class="bars-container">
+                        <div class="bar-row">
+                            <span class="bar-label">Shift</span>
+                            <div class="bar-track">
+                                <span class="bar-text">${fmt(p.shiftTime)}</span>
+                                <div class="bar-fill fill-fatigue" style="width:${fPct}%"></div>
+                            </div>
+                        </div>
+                        <div class="bar-row">
+                            <span class="bar-label">Total</span>
+                            <div class="bar-track">
+                                <span class="bar-text">${fmt(p.totalTime)}</span>
+                                <div class="bar-fill fill-equity" style="width:${ePct}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                if(p.onCourt) cList.appendChild(div); else bList.appendChild(div);
+            });
+            updateUI();
+        }
+
+        function togglePlayer(id) {
+            const p = roster.find(x => x.id === id);
+            if(p) {
+                if(!p.onCourt && roster.filter(x=>x.onCourt).length >= 5) { alert("⚠️ 5 Players Max!"); return; }
+                p.onCourt = !p.onCourt;
+                if(!p.onCourt) p.shiftTime = 0;
+                save(); render();
             }
         }
-        function gameTick() {
-            if(gameSeconds > 0) {
-                gameSeconds--; updateClockUI();
-                trPlayers.forEach(p => {
-                    if(p.isOnCourt) { p.totalTime++; p.currentFatigue++; } 
-                    else { p.recoveryCounter++; if(p.recoveryCounter >= 4) { if(p.currentFatigue > 0) p.currentFatigue--; p.recoveryCounter = 0; } }
-                });
-                renderTracker();
-                if(gameSeconds % 10 === 0) saveData(); 
-            } else {
-                toggleGame();
-                playSound('buzzer');
-                document.getElementById('game-toggle').textContent = "End of Quarter";
-                document.getElementById('next-q-btn').style.display = 'block';
-                alert("Quarter Ended");
-            }
-        }
-        function nextQuarter() {
-            currentQuarter++; gameSeconds = quarterLengthInMinutes * 60;
-            document.getElementById('quarter-display').textContent = "Q" + currentQuarter;
-            updateClockUI(); document.getElementById('next-q-btn').style.display = 'none';
-            document.getElementById('game-toggle').textContent = "Start Clock"; document.getElementById('game-toggle').className = "action-btn btn-green";
-            trPlayers.forEach(p => { p.currentFatigue = Math.max(0, p.currentFatigue - 30); });
-            playSound('whistle');
-            saveData(); renderTracker();
-        }
-        function updateClockUI() {
-            const m = Math.floor(gameSeconds / 60); const s = gameSeconds % 60;
-            document.getElementById('clock-display').textContent = `${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
-        }
-        function updateTimeoutsUI() {
-            document.getElementById('home-to-display').textContent = homeTimeoutsRemaining;
-            document.getElementById('guest-to-display').textContent = guestTimeoutsRemaining;
-        }
-        function callTimeout(team) {
-            playSound('click');
-            if (!gameActive) { showNotif("Clock is not running."); return; }
-            if (team === 'home') {
-                if (homeTimeoutsRemaining > 0) { homeTimeoutsRemaining--; toggleGame(); showNotif(`Home Timeout! ${homeTimeoutsRemaining} left.`); } 
-                else { showNotif("Home has no timeouts."); return; }
-            } else if (team === 'guest') {
-                if (guestTimeoutsRemaining > 0) { guestTimeoutsRemaining--; toggleGame(); showNotif(`Guest Timeout! ${guestTimeoutsRemaining} left.`); }
-                else { showNotif("Guest has no timeouts."); return; }
-            }
-            updateTimeoutsUI(); saveData();
-        }
-        function toggleMode() { playSound('click'); equityMode = document.getElementById('mode-switch').checked; renderTracker(); }
-        function subPlayer(id) {
-            playSound('click');
-            const p = trPlayers.find(x => x.id === id); const onCourt = trPlayers.filter(x => x.isOnCourt).length;
-            if(!p.isOnCourt && onCourt >= 5) { alert("Court is full (5 players). Sub someone out first."); return; }
-            p.isOnCourt = !p.isOnCourt; saveData(); renderTracker();
-        }
-        function renderTracker() {
-            const courtList = document.getElementById('court-list'); const benchList = document.getElementById('bench-list');
-            courtList.innerHTML = ''; benchList.innerHTML = '';
-            document.getElementById('court-count').innerText = `${trPlayers.filter(p=>p.isOnCourt).length}/5`;
-            let courtP = trPlayers.filter(p => p.isOnCourt); let benchP = trPlayers.filter(p => !p.isOnCourt);
-            if(equityMode) { courtP.sort((a,b) => b.totalTime - a.totalTime); benchP.sort((a,b) => a.totalTime - b.totalTime); } 
-            else { courtP.sort((a,b) => b.currentFatigue - a.currentFatigue); benchP.sort((a,b) => a.currentFatigue - b.currentFatigue); }
-            const createCard = (p) => {
-                const elapsed = ((currentQuarter-1)*quarterLengthInMinutes*60) + ((quarterLengthInMinutes*60) - gameSeconds);
-                let pct, color;
-                if(equityMode) { pct = (p.totalTime / Math.max(1, elapsed)) * 100; color = 'var(--equity)'; } 
-                else { pct = Math.max(0, 100 - ((p.currentFatigue/(quarterLengthInMinutes*60))*100)); color = pct<30 ? 'var(--danger)' : (pct<60?'#fbc02d':'var(--success)'); }
-                return `<div class="player-card"><div class="pos-badge">${p.position}</div><div class="player-info"><strong>${p.name}</strong> <span style="color:#777; font-size:0.8rem">(${formatTime(p.totalTime)})</span><div class="bar-container"><div class="status-bar" style="width:${Math.min(100, pct)}%; background:${color}"></div></div></div><button class="action-btn ${p.isOnCourt?'':'btn-green'}" style="margin-left:10px; background:${p.isOnCourt?'#eee':'var(--primary)'}; color:${p.isOnCourt?'#333':'white'}" onclick="subPlayer(${p.id})">${p.isOnCourt ? 'Sit' : 'Play'}</button></div>`;
-            };
-            courtP.forEach(p => courtList.innerHTML += createCard(p)); benchP.forEach(p => benchList.innerHTML += createCard(p));
-        }
-        function openSettings() { 
-            playSound('click');
-            document.getElementById('setting-quarter-length').value = quarterLengthInMinutes;
-            document.getElementById('setting-timeouts').value = totalTimeoutsPerTeam;
-            document.getElementById('settings-modal').style.display = 'flex'; 
-        }
+
         function saveSettings() {
-            if(gameActive && !confirm("Game is active. Saving settings will reset the clock. Continue?")) return;
-            quarterLengthInMinutes = parseInt(document.getElementById('setting-quarter-length').value);
-            totalTimeoutsPerTeam = parseInt(document.getElementById('setting-timeouts').value);
-            if(gameActive) toggleGame();
-            currentQuarter = 1; gameSeconds = quarterLengthInMinutes * 60;
-            homeTimeoutsRemaining = totalTimeoutsPerTeam; guestTimeoutsRemaining = totalTimeoutsPerTeam;
-            document.getElementById('quarter-display').textContent = "Q1";
-            updateClockUI(); updateTimeoutsUI(); saveData(); showNotif("Settings Saved");
-            document.getElementById('settings-modal').style.display = 'none';
-        }
-        function openPlanner() { playSound('click'); document.getElementById('planner-modal').style.display = 'flex'; }
-        function generatePlan() {
-            const p = [...trPlayers]; if(p.length < 5) { alert("Need 5+ players"); return; }
-            let html = "<table style='width:100%; border-collapse:collapse;'><tr><th>Period</th><th>Lineup</th></tr>";
-            for(let i=0; i<8; i++) {
-                const lineup = []; for(let j=0; j<5; j++) lineup.push(p[(i*5 + j) % p.length].name);
-                html += `<tr><td style='border:1px solid #ddd; padding:5px;'>${i%2==0?'Start':'Mid'} Q${Math.floor(i/2)+1}</td><td style='border:1px solid #ddd; padding:5px;'>${lineup.join(', ')}</td></tr>`;
+            const ql = parseInt(document.getElementById('cfg-qlen').value);
+            if(ql > 0) {
+                config.qLen = ql;
+                // If clock is stopped and sitting at old max, update it
+                if(!clock.run && clock.min > ql) clock.min = ql;
             }
-            document.getElementById('plan-container').innerHTML = html + "</table>";
-        }
-        function generateRecommendation() {
-            playSound('click');
-            const c = trPlayers.filter(p=>p.isOnCourt); const b = trPlayers.filter(p=>!p.isOnCourt); if(!c.length || !b.length) return;
-            c.sort((x,y) => y.currentFatigue - x.currentFatigue); b.sort((x,y) => x.currentFatigue - y.currentFatigue);
-            document.getElementById('feedback-text').innerHTML = `Sub OUT <b>${c[0].name}</b>, IN <b>${b[0].name}</b>`;
-            document.getElementById('coach-feedback').style.display = 'block';
-            window.pendingSub = { out: c[0].id, in: b[0].id };
-            playSound('success');
-        }
-        function applySuggestion() {
-            if(window.pendingSub) { subPlayer(window.pendingSub.out); subPlayer(window.pendingSub.in); document.getElementById('coach-feedback').style.display = 'none'; }
-        }
-        function exportTimeStats() {
-            let csv = "Name,Pos,TimeFormatted,Seconds\n";
-            trPlayers.forEach(p => csv += `${p.name},${p.position},${formatTime(p.totalTime)},${p.totalTime}\n`);
-            downloadCSV(csv, "TIU_TimeStats.csv");
+            config.maxTO = parseInt(document.getElementById('cfg-max-to').value);
+            config.foulLimit = parseInt(document.getElementById('cfg-foul-limit').value);
+            localStorage.setItem('tiu_config', JSON.stringify(config));
+            toggleModal('settings-modal');
+            renderTimeouts();
+            render();
         }
 
-        // --- DONATE MODAL LOGIC ---
-        function openDonateModal() { document.getElementById('donate-modal').style.display = 'flex'; }
-        function closeDonateModal() { document.getElementById('donate-modal').style.display = 'none'; }
+        function adjTO(val) {
+            timeouts += val;
+            if(timeouts < 0) timeouts = 0;
+            if(timeouts > config.maxTO) timeouts = config.maxTO;
+            renderTimeouts();
+        }
+        function resetTimeouts() { timeouts = config.maxTO; renderTimeouts(); }
+        function renderTimeouts() {
+            let html = "";
+            for(let i=0; i<config.maxTO; i++) html += `<span class="to-dot ${i<timeouts?'active':''}"></span>`;
+            document.getElementById('to-dots').innerHTML = html;
+        }
+
+        function adjFouls(val) {
+            teamFouls += val;
+            if(teamFouls < 0) teamFouls = 0;
+            const el = document.getElementById('team-fouls');
+            el.innerText = teamFouls;
+            el.style.color = teamFouls >= 5 ? "#ff8f00" : "white";
+        }
+
+        function processBulk() {
+            const txt = document.getElementById('bulk-text').value;
+            txt.split('\n').forEach(n => { if(n.trim()) roster.push({ id: Date.now()+Math.random(), name: n.trim(), onCourt: false, shiftTime:0, totalTime:0 }); });
+            document.getElementById('bulk-text').value = ""; toggleModal('bulk-modal'); save(); render();
+        }
+
+        function save() {
+            localStorage.setItem('tiu_roster', JSON.stringify(roster));
+            localStorage.setItem('tiu_clock_data', JSON.stringify(clock));
+            localStorage.setItem('tiu_clock_display', `${clock.min}:${clock.sec.toString().padStart(2,'0')}`);
+            localStorage.setItem('tiu_is_running', clock.run);
+        }
+
+        function updateUI() {
+            const el = document.getElementById('clock');
+            if(clock.run) el.classList.add('active'); else el.classList.remove('active');
+        }
+
+        function toggleModal(id) { const m = document.getElementById(id); m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
+        
+        function exportData() {
+            const blob = new Blob([JSON.stringify({roster,clock})], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rotation.json'; a.click();
+        }
+        function importData(inp) {
+            const r = new FileReader(); r.onload=e=>{ const d=JSON.parse(e.target.result); roster=d.roster||[]; clock=d.clock||clock; save(); render(); };
+            r.readAsText(inp.files[0]);
+        }
+        function generateGamePlan() {
+            if(roster.length < 5) return;
+            const periods = ["Q1 Start", "Q1 Mid", "Q2 Start", "Q2 Mid", "Q3 Start", "Q3 Mid", "Q4 Start", "Q4 Mid"];
+            let html = "<table style='width:100%; border-collapse:collapse; color:white'>";
+            let pIdx = 0;
+            periods.forEach(per => {
+                let lineup = [];
+                for(let i=0; i<5; i++) { lineup.push(roster[pIdx % roster.length].name); pIdx++; }
+                html += `<tr><td style='border:1px solid #555; padding:5px'>${per}</td><td style='border:1px solid #555; padding:5px; font-size:0.8rem'>${lineup.join(', ')}</td></tr>`;
+            });
+            html += "</table>";
+            document.getElementById('plan-content').innerHTML = html;
+            toggleModal('plan-modal');
+        }
     </script>
 </body>
 </html>
