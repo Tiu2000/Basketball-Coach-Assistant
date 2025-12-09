@@ -57,8 +57,7 @@
         .c-miss { background: #c62828; }
         .c-stat { background: #2e7d32; }
         .c-bad { background: #424242; }
-        .c-undo { background: #546e7a; }
-        .c-chart { background: #673ab7; display:flex; align-items:center; justify-content:center; gap:5px; }
+        .c-chart { background: #673ab7; grid-column: span 1; display:flex; align-items:center; justify-content:center; gap:5px; }
         
         /* Keyboard Shortcut Hint */
         .key-hint { 
@@ -134,16 +133,15 @@
         <button class="btn c-pts" onclick="triggerShot(2, 'fg')">2 PT <span class="key-hint">2</span></button>
         <button class="btn c-pts" onclick="triggerShot(3, 'fg')">3 PT <span class="key-hint">3</span></button>
         <button class="btn c-miss" onclick="triggerShot(0, 'miss')">MISS <span class="key-hint">0/M</span></button>
+        
         <button class="btn c-bad" onclick="recordStat(0, 'pf')">FOUL <span class="key-hint">F</span></button>
         <button class="btn c-bad" onclick="recordStat(0, 'to')">TO <span class="key-hint">T</span></button>
-        
         <button class="btn c-stat" onclick="recordStat(0, 'reb')">REB <span class="key-hint">R</span></button>
         <button class="btn c-stat" onclick="recordStat(0, 'ast')">AST <span class="key-hint">A</span></button>
         <button class="btn c-stat" onclick="recordStat(0, 'stl')">STL <span class="key-hint">S</span></button>
         <button class="btn c-stat" onclick="recordStat(0, 'blk')">BLK <span class="key-hint">B</span></button>
         
-        <button class="btn c-undo" onclick="undo()">↩ UNDO <span class="key-hint">U</span></button>
-        <button class="btn c-chart" onclick="openReviewChart()">📊 CHART</button>
+        <button class="btn c-chart" onclick="openReviewChart()">📊 VIEW TEAM CHART</button>
     </div>
 
     <div id="shot-modal" class="modal">
@@ -170,38 +168,6 @@
         let rosterCache = "";
         let pendingShot = { val: 0, type: '', reviewOnly: false };
 
-        // HISTORY STACK FOR UNDO
-        let historyStack = [];
-
-        function pushHistory() {
-            // Deep copy state before changing it
-            const state = {
-                stats: JSON.parse(JSON.stringify(stats)),
-                logs: JSON.parse(JSON.stringify(logs)),
-                score: JSON.parse(JSON.stringify(score)),
-                shots: JSON.parse(JSON.stringify(shots))
-            };
-            historyStack.push(state);
-            if(historyStack.length > 50) historyStack.shift(); // Limit to 50 undos
-        }
-
-        function undo() {
-            if(historyStack.length === 0) {
-                // Visual feedback?
-                return;
-            }
-            const prev = historyStack.pop();
-            stats = prev.stats;
-            logs = prev.logs;
-            score = prev.score;
-            shots = prev.shots;
-
-            save();
-            renderLogs();
-            updateScore();
-            renderRoster(JSON.parse(rosterCache));
-        }
-
         // --- KEYBOARD SHORTCUTS ---
         document.addEventListener('keydown', (e) => {
             if(document.getElementById('shot-modal').style.display === 'flex') {
@@ -211,12 +177,6 @@
 
             const key = e.key.toUpperCase();
             
-            // Undo shortcut (U or Ctrl+Z)
-            if(key === 'U' || (e.ctrlKey && key === 'Z')) {
-                undo();
-                return;
-            }
-
             // Stats
             if(key === '1') triggerShot(1, 'fg');
             else if(key === '2') triggerShot(2, 'fg');
@@ -273,7 +233,6 @@
         }
 
         function adjGuest(val) {
-            pushHistory(); // Save state before change
             score.guest += val; if(score.guest < 0) score.guest = 0;
             updateScore(); save();
         }
@@ -307,32 +266,12 @@
         cvs.onclick = (e) => {
             if(pendingShot.reviewOnly) return;
             if(!selectedId) return;
-            
-            pushHistory(); // Save state before recording shot/stats
-
             const rect = cvs.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const isMake = pendingShot.type !== 'miss';
             shots.push({ x, y, make: isMake, pid: selectedId, pName: selectedName });
-            
-            // Note: We don't call recordStat here because we want to bundle the shot+stat in one history step
-            // so we manually do the logic of recordStat below
-            const p = JSON.parse(rosterCache).find(x => x.id === selectedId);
-            const s = stats[selectedId];
-            const time = document.getElementById('time-text').innerText;
-            let txt = "";
-
-            if(pendingShot.val > 0) {
-                s.pts += pendingShot.val; s.fgm++; s.fga++; score.home += pendingShot.val;
-                txt = `${p.name} Scored ${pendingShot.val} Pts`;
-            } else if(pendingShot.type === 'miss') {
-                s.fga++; txt = `${p.name} Missed`;
-            }
-
-            logs.unshift(`[${time}] ${txt}`);
-            save(); renderLogs(); updateScore(); renderRoster(JSON.parse(rosterCache));
-            
+            recordStat(pendingShot.val, pendingShot.type);
             document.getElementById('shot-modal').style.display = 'none';
         }
 
@@ -361,9 +300,6 @@
 
         function recordStat(val, type) {
             if(!selectedId) { alert("Select a player first!"); return; }
-            
-            pushHistory(); // Save state
-
             const p = JSON.parse(rosterCache).find(x => x.id === selectedId);
             const s = stats[selectedId];
             const time = document.getElementById('time-text').innerText;
