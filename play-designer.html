@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Play Designer</title>
+    <title>Play Designer - Multi-Step</title>
     <style>
         :root { --primary: #1a237e; --accent: #ff6f00; --bg: #f0f2f5; --court: #e0bb86; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
@@ -15,6 +15,9 @@
         .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         .tool-btn.danger { background: #ffebee; color: #c62828; }
         
+        /* Step Counter Style */
+        .step-display { font-weight: bold; min-width: 60px; text-align: center; font-variant-numeric: tabular-nums; }
+
         select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; }
 
         #main-area { flex: 1; display: flex; overflow: hidden; position: relative;}
@@ -61,6 +64,15 @@
             <button class="tool-btn" onclick="setTool('dribble')">〰 Dribble</button>
             <button class="tool-btn" onclick="setTool('pass')">--- Pass</button>
             <button class="tool-btn danger" onclick="setTool('eraser')">⌫ Eraser</button>
+        </div>
+
+        <div class="tool-group" style="background: #e8f5e9;">
+            <button class="tool-btn" title="Previous Step" onclick="changeStep(-1)">◀</button>
+            <span id="step-count" class="step-display">Step 1/1</span>
+            <button class="tool-btn" title="Next Step" onclick="changeStep(1)">▶</button>
+            <button class="tool-btn" onclick="addStep()" title="Add New Step">➕ Add</button>
+            <button class="tool-btn danger" onclick="deleteStep()" title="Delete Current Step">✕</button>
+            <button id="play-btn" class="tool-btn" onclick="togglePlay()">⏯ Play</button>
         </div>
 
         <div class="tool-group">
@@ -121,12 +133,21 @@
         const canvas = document.getElementById('court-canvas');
         const ctx = canvas.getContext('2d');
         
+        // --- STATE MANAGEMENT ---
         let tool = 'move';
         let isDrawing = false;
         let isFullCourt = false;
-        let objects = [];
-        let lines = [];
         let startX, startY;
+        
+        // Multi-step State
+        let steps = [{ objects: [], lines: [] }];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+
+        // Getters for convenience
+        function getCurrObjects() { return steps[currentStepIndex].objects; }
+        function getCurrLines() { return steps[currentStepIndex].lines; }
 
         // --- PRESETS ---
         const FORMATIONS = {
@@ -139,11 +160,73 @@
             'box':  [{type:'atk',label:'1',x:400,y:150}, {type:'atk',label:'4',x:300,y:300}, {type:'atk',label:'5',x:500,y:300}, {type:'atk',label:'2',x:300,y:450}, {type:'atk',label:'3',x:500,y:450}]
         };
 
+        function updateStepUI() {
+            document.getElementById('step-count').innerText = `Step ${currentStepIndex + 1}/${steps.length}`;
+            drawCourt();
+            renderObjects();
+        }
+
+        // --- STEP LOGIC ---
+        function addStep() {
+            playClick();
+            // Clone current objects, but clear lines for new movement
+            const currentObjs = JSON.parse(JSON.stringify(getCurrObjects()));
+            
+            // Insert new step after current
+            steps.splice(currentStepIndex + 1, 0, { objects: currentObjs, lines: [] });
+            currentStepIndex++;
+            updateStepUI();
+        }
+
+        function deleteStep() {
+            if (steps.length <= 1) {
+                alert("Cannot delete the only step.");
+                return;
+            }
+            if (!confirm("Delete this step?")) return;
+            playClick();
+            steps.splice(currentStepIndex, 1);
+            if (currentStepIndex >= steps.length) currentStepIndex = steps.length - 1;
+            updateStepUI();
+        }
+
+        function changeStep(dir) {
+            playClick();
+            const newIndex = currentStepIndex + dir;
+            if (newIndex >= 0 && newIndex < steps.length) {
+                currentStepIndex = newIndex;
+                updateStepUI();
+            }
+        }
+
+        function togglePlay() {
+            const btn = document.getElementById('play-btn');
+            if (isPlaying) {
+                clearInterval(playInterval);
+                isPlaying = false;
+                btn.innerText = "⏯ Play";
+                btn.classList.remove('active');
+            } else {
+                isPlaying = true;
+                btn.innerText = "⏹ Stop";
+                btn.classList.add('active');
+                playInterval = setInterval(() => {
+                    currentStepIndex++;
+                    if (currentStepIndex >= steps.length) currentStepIndex = 0;
+                    updateStepUI();
+                }, 1500); // 1.5 seconds per step
+            }
+        }
+
+        // --- RENDERING ---
+
         function drawCourt() {
             ctx.clearRect(0,0, canvas.width, canvas.height);
             const W = 800; 
             const H = isFullCourt ? 1000 : 600;
+            const lines = getCurrLines();
 
+            // Draw Lines
             lines.forEach(l => {
                 ctx.beginPath();
                 ctx.strokeStyle = l.style === 'pass' ? 'black' : (l.style === 'dribble' ? 'blue' : '#333');
@@ -154,12 +237,15 @@
 
                 const headlen = 10; const dx = l.x2 - l.x1; const dy = l.y2 - l.y1; const angle = Math.atan2(dy, dx);
                 ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+                
+                // Arrowhead
                 ctx.beginPath(); ctx.setLineDash([]); ctx.moveTo(l.x2, l.y2);
                 ctx.lineTo(l.x2 - headlen * Math.cos(angle - Math.PI / 6), l.y2 - headlen * Math.sin(angle - Math.PI / 6));
                 ctx.lineTo(l.x2 - headlen * Math.cos(angle + Math.PI / 6), l.y2 - headlen * Math.sin(angle + Math.PI / 6));
                 ctx.lineTo(l.x2, l.y2); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
             });
 
+            // Court markings
             ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 4; ctx.setLineDash([]);
             ctx.strokeRect(20, 20, W-40, H-40);
 
@@ -182,6 +268,8 @@
 
         function renderObjects() {
             document.querySelectorAll('.obj').forEach(e => e.remove());
+            const objects = getCurrObjects();
+
             objects.forEach((obj, idx) => {
                 const el = document.createElement('div');
                 el.className = `obj ${obj.type}`;
@@ -191,21 +279,42 @@
                 else el.innerText = obj.label;
 
                 el.style.left = obj.x + 'px'; el.style.top = obj.y + 'px';
-                el.onclick = function() { if(tool === 'eraser') { playClick(); objects.splice(idx, 1); renderObjects(); } }
                 
+                // Delete Object
+                el.onclick = function() { 
+                    if(tool === 'eraser') { 
+                        playClick(); 
+                        getCurrObjects().splice(idx, 1); 
+                        renderObjects(); 
+                    } 
+                }
+                
+                // Drag Logic
                 el.onmousedown = function(e) {
                     if(tool !== 'move') return;
                     e.preventDefault();
                     let shiftX = e.clientX - el.getBoundingClientRect().left;
                     let shiftY = e.clientY - el.getBoundingClientRect().top;
-                    const moveAt = (px, py) => { obj.x = px - shiftX - wrapper.getBoundingClientRect().left; obj.y = py - shiftY - wrapper.getBoundingClientRect().top; el.style.left = obj.x + 'px'; el.style.top = obj.y + 'px'; };
+                    
+                    const moveAt = (px, py) => { 
+                        obj.x = px - shiftX - wrapper.getBoundingClientRect().left; 
+                        obj.y = py - shiftY - wrapper.getBoundingClientRect().top; 
+                        el.style.left = obj.x + 'px'; 
+                        el.style.top = obj.y + 'px'; 
+                    };
                     const onMove = (e) => moveAt(e.clientX, e.clientY);
+                    
                     document.addEventListener('mousemove', onMove);
-                    el.onmouseup = function() { document.removeEventListener('mousemove', onMove); el.onmouseup = null; };
+                    el.onmouseup = function() { 
+                        document.removeEventListener('mousemove', onMove); 
+                        el.onmouseup = null; 
+                    };
                 };
                 wrapper.appendChild(el);
             });
         }
+
+        // --- INTERACTION ---
 
         wrapper.onmousedown = function(e) {
             if(tool === 'move') return;
@@ -213,22 +322,31 @@
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
+            // Eraser: Lines
             if(tool === 'eraser') {
-                lines = lines.filter(l => {
+                const lines = getCurrLines();
+                const initialLen = lines.length;
+                const newLines = lines.filter(l => {
                     const dist = Math.abs((l.y2-l.y1)*clickX - (l.x2-l.x1)*clickY + l.x2*l.y1 - l.y2*l.x1) / Math.sqrt(Math.pow(l.y2-l.y1,2) + Math.pow(l.x2-l.x1,2));
                     return dist > 10; 
                 });
-                if(lines.length < lines.length) playClick();
+                
+                // We must update the array in place or reassign
+                steps[currentStepIndex].lines = newLines;
+
+                if(newLines.length < initialLen) playClick();
                 drawCourt();
                 return;
             }
+            
+            // Start Drawing
             startX = clickX; startY = clickY; isDrawing = true;
         };
 
         wrapper.onmouseup = function(e) {
             if(!isDrawing) return;
             const rect = wrapper.getBoundingClientRect();
-            lines.push({x1: startX, y1: startY, x2: e.clientX - rect.left, y2: e.clientY - rect.top, style: tool});
+            getCurrLines().push({x1: startX, y1: startY, x2: e.clientX - rect.left, y2: e.clientY - rect.top, style: tool});
             isDrawing = false; drawCourt(); playClick();
         };
 
@@ -236,25 +354,34 @@
             playClick();
             tool = t;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            if(event.target.tagName === 'BUTTON') event.target.classList.add('active');
+            // Reactivate Play button if active? No, tools are separate.
+            // But we need to highlight the tool button
+            // Finding the specific button that triggered this is tricky if called programmatically, 
+            // so we rely on the click event target if available.
+            if(event && event.target && event.target.tagName === 'BUTTON') {
+                event.target.classList.add('active');
+            }
             wrapper.style.cursor = t === 'move' ? 'default' : (t === 'eraser' ? 'crosshair' : 'crosshair');
         }
 
         function addObj(type) {
             playClick();
             let label = '';
+            const objects = getCurrObjects();
             if(type === 'atk') label = prompt("Player Number?", (objects.filter(o=>o.type=='atk').length+1));
             if(type === 'def') label = prompt("Defender Label?", "X" + (objects.filter(o=>o.type=='def').length+1));
             if((type === 'atk' || type === 'def') && !label) return;
             if(type === 'ball') label = '🏀';
+            
             objects.push({id: Date.now(), type, x: 400, y: 300, label: label || ''});
             renderObjects();
         }
 
         function promptLabel() { document.getElementById('label-modal').style.display = 'flex'; }
+        
         function addLabel() {
             const txt = document.getElementById('label-text').value;
-            if(txt) objects.push({id: Date.now(), type:'label', x: 400, y: 300, label: txt});
+            if(txt) getCurrObjects().push({id: Date.now(), type:'label', x: 400, y: 300, label: txt});
             document.getElementById('label-modal').style.display = 'none'; renderObjects(); playClick();
         }
 
@@ -268,10 +395,10 @@
 
         function loadFormation(key) {
             if(!key) return;
-            if(confirm("Replace current board?")) {
+            if(confirm("Replace current step with formation?")) {
                 clearFrame();
                 if(FORMATIONS[key]) {
-                    objects = JSON.parse(JSON.stringify(FORMATIONS[key]));
+                    steps[currentStepIndex].objects = JSON.parse(JSON.stringify(FORMATIONS[key]));
                     renderObjects();
                 }
             }
@@ -279,24 +406,46 @@
             document.getElementById('quick-play-select').value = "";
         }
 
-        function clearFrame() { playClick(); objects = []; lines = []; renderObjects(); drawCourt(); }
+        function clearFrame() { 
+            playClick(); 
+            steps[currentStepIndex].objects = []; 
+            steps[currentStepIndex].lines = []; 
+            renderObjects(); 
+            drawCourt(); 
+        }
+
+        // --- FILE OPS ---
 
         function exportPlay() {
-            const data = JSON.stringify({ objects, lines, isFullCourt });
+            // Save all steps
+            const data = JSON.stringify({ steps, isFullCourt, version: 2 });
             const blob = new Blob([data], {type: 'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Play.json'; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Play_MultiStep.json'; a.click();
         }
+        
         function loadPlay(input) {
             const file = input.files[0];
             if(!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = JSON.parse(e.target.result);
-                if(data.objects) {
-                    objects = data.objects; lines = data.lines || []; isFullCourt = !!data.isFullCourt;
-                    if(isFullCourt) toggleCourt(); 
-                    renderObjects(); drawCourt();
+                
+                // Handle V2 (Multi-step)
+                if (data.version === 2 || data.steps) {
+                    steps = data.steps;
+                    currentStepIndex = 0;
+                } 
+                // Handle V1 (Single step legacy)
+                else if (data.objects) {
+                    steps = [{ objects: data.objects, lines: data.lines || [] }];
+                    currentStepIndex = 0;
                 }
+                
+                isFullCourt = !!data.isFullCourt;
+                if(isFullCourt && wrapper.style.height !== '1000px') toggleCourt(); 
+                if(!isFullCourt && wrapper.style.height === '1000px') toggleCourt();
+                
+                updateStepUI();
             };
             reader.readAsText(file);
         }
