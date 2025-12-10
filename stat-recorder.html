@@ -109,7 +109,8 @@
             <div class="dot"></div> <span id="time-text">--:--</span>
         </div>
 
-        <div>
+        <div style="display:flex; gap:5px">
+            <button id="sound-btn" onclick="toggleSound()" style="padding:6px 10px; border:none; background:#444; color:white; border-radius:4px; cursor:pointer; font-size:1rem" title="Toggle Sound">🔊</button>
             <button onclick="exportCSV()" style="padding:6px 10px; border:none; background:#00838f; color:white; border-radius:4px; cursor:pointer; font-size:0.8rem">💾 Export</button>
             <button onclick="window.print()" style="padding:6px 10px; border:none; background:#616161; color:white; border-radius:4px; cursor:pointer; font-size:0.8rem">🖨️ Print</button>
         </div>
@@ -168,6 +169,47 @@
         let rosterCache = "";
         let pendingShot = { val: 0, type: '', reviewOnly: false };
 
+        // --- SOUND SYSTEM ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        let soundEnabled = JSON.parse(localStorage.getItem('tiu_sound_stats')) ?? true;
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('tiu_sound_stats', soundEnabled);
+            updateSoundUI();
+        }
+
+        function updateSoundUI() {
+            const btn = document.getElementById('sound-btn');
+            if(soundEnabled) {
+                btn.innerHTML = "🔊";
+                btn.style.opacity = "1";
+            } else {
+                btn.innerHTML = "🔇";
+                btn.style.opacity = "0.6";
+            }
+        }
+
+        function playClick() {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+
         // --- KEYBOARD SHORTCUTS ---
         document.addEventListener('keydown', (e) => {
             if(document.getElementById('shot-modal').style.display === 'flex') {
@@ -190,7 +232,11 @@
             else if(key === 'B') recordStat(0, 'blk');
         });
 
-        window.onload = () => { renderLogs(); updateScore(); };
+        window.onload = () => { 
+            renderLogs(); 
+            updateScore(); 
+            updateSoundUI(); 
+        };
 
         setInterval(() => {
             const time = localStorage.getItem('tiu_clock_display');
@@ -227,12 +273,14 @@
         }
 
         function select(id, name) {
+            playClick(); // Sound
             selectedId = id; selectedName = name;
             document.getElementById('selection-msg').innerHTML = `Selected: <b style="color:#4caf50">${name}</b>`;
             renderRoster(JSON.parse(rosterCache));
         }
 
         function adjGuest(val) {
+            playClick(); // Sound
             score.guest += val; if(score.guest < 0) score.guest = 0;
             updateScore(); save();
         }
@@ -244,6 +292,7 @@
 
         function triggerShot(val, type) {
             if(!selectedId) { alert("Select a player first!"); return; }
+            playClick(); // Sound
             pendingShot = { val: val, type: type, reviewOnly: false };
             const title = document.getElementById('modal-title');
             if(type === 'miss') { title.innerText = "Record MISS"; title.style.color = "red"; }
@@ -253,6 +302,7 @@
         }
 
         function openReviewChart() {
+            playClick(); // Sound
             pendingShot = { reviewOnly: true };
             document.getElementById('modal-title').innerText = "Team Shot Chart";
             document.getElementById('modal-title').style.color = "black";
@@ -266,6 +316,9 @@
         cvs.onclick = (e) => {
             if(pendingShot.reviewOnly) return;
             if(!selectedId) return;
+            
+            playClick(); // Sound
+            
             const rect = cvs.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -300,6 +353,8 @@
 
         function recordStat(val, type) {
             if(!selectedId) { alert("Select a player first!"); return; }
+            playClick(); // Sound
+            
             const p = JSON.parse(rosterCache).find(x => x.id === selectedId);
             const s = stats[selectedId];
             const time = document.getElementById('time-text').innerText;

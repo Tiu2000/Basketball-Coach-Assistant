@@ -87,7 +87,6 @@
         .btn-blue { background: var(--blue); }
         .btn-gray { background: #555; }
         .btn-gold { background: var(--gold); color: black; }
-        .btn-mute { background: #444; width: 40px; } 
 
         /* MODALS */
         .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
@@ -216,7 +215,6 @@
         
         let savedClock = JSON.parse(localStorage.getItem('tiu_clock_data'));
         
-        // Strict Validation to prevent NaN
         let clock = { min: config.qLen, sec: 0, run: false, q: 1 };
         
         if (savedClock && !isNaN(savedClock.min) && !isNaN(savedClock.sec) && !isNaN(savedClock.q)) {
@@ -230,7 +228,7 @@
         // --- SOUND SYSTEM ---
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
-        let soundEnabled = JSON.parse(localStorage.getItem('tiu_sound')) ?? true; // Default to true
+        let soundEnabled = JSON.parse(localStorage.getItem('tiu_sound')) ?? true; 
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
@@ -270,7 +268,7 @@
                 osc.stop(now + 1.5);
             } 
             else if (type === 'whistle') {
-                // Short Whistle/Beep for Start/Stop/NextQ
+                // Short Whistle
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
@@ -278,6 +276,15 @@
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                 osc.start(now);
                 osc.stop(now + 0.3);
+            }
+            else if (type === 'click') {
+                // UI Interaction Click (Short, higher pitch)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.1);
             }
         }
 
@@ -292,7 +299,7 @@
         function toggleClock(state) {
             clock.run = state;
             updateUI();
-            playAudio('whistle'); // Play whistle on start/stop
+            playAudio('whistle'); 
             if(state) {
                 if(audioCtx.state === 'suspended') audioCtx.resume();
                 clearInterval(timerInt);
@@ -304,7 +311,6 @@
         }
 
         function tick() {
-            // Self-healing: if corrupted during runtime, reset
             if(isNaN(clock.min) || isNaN(clock.sec)) { 
                 clock.min = config.qLen; clock.sec = 0; 
                 toggleClock(false);
@@ -313,7 +319,7 @@
             if(clock.sec === 0) {
                 if(clock.min === 0) { 
                     toggleClock(false); 
-                    playAudio('buzzer'); // Automatic buzzer
+                    playAudio('buzzer'); 
                     return; 
                 }
                 clock.min--; clock.sec = 59;
@@ -362,7 +368,6 @@
                     return `${tm}:${ts}`;
                 };
                 
-                // Visual percentages
                 const fPct = Math.min(100, (p.shiftTime/300)*100);
                 const ePct = Math.min(100, (p.totalTime/1200)*100); 
 
@@ -396,6 +401,7 @@
         }
 
         function togglePlayer(id) {
+            playAudio('click'); // Click sound
             const p = roster.find(x => x.id === id);
             if(p) {
                 if(!p.onCourt && roster.filter(x=>x.onCourt).length >= 5) { alert("⚠️ 5 Players Max!"); return; }
@@ -406,10 +412,10 @@
         }
 
         function saveSettings() {
+            playAudio('click');
             const ql = parseInt(document.getElementById('cfg-qlen').value);
             if(ql > 0) {
                 config.qLen = ql;
-                // If clock is stopped and sitting at old max, update it
                 if(!clock.run && clock.min > ql) clock.min = ql;
             }
             config.maxTO = parseInt(document.getElementById('cfg-max-to').value);
@@ -421,12 +427,13 @@
         }
 
         function adjTO(val) {
+            playAudio('click'); // Click sound
             timeouts += val;
             if(timeouts < 0) timeouts = 0;
             if(timeouts > config.maxTO) timeouts = config.maxTO;
             renderTimeouts();
         }
-        function resetTimeouts() { timeouts = config.maxTO; renderTimeouts(); }
+        function resetTimeouts() { playAudio('click'); timeouts = config.maxTO; renderTimeouts(); }
         function renderTimeouts() {
             let html = "";
             for(let i=0; i<config.maxTO; i++) html += `<span class="to-dot ${i<timeouts?'active':''}"></span>`;
@@ -434,6 +441,7 @@
         }
 
         function adjFouls(val) {
+            playAudio('click'); // Click sound
             teamFouls += val;
             if(teamFouls < 0) teamFouls = 0;
             const el = document.getElementById('team-fouls');
