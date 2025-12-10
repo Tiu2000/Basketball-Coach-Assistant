@@ -87,6 +87,7 @@
         .btn-blue { background: var(--blue); }
         .btn-gray { background: #555; }
         .btn-gold { background: var(--gold); color: black; }
+        .btn-mute { background: #444; width: 40px; } 
 
         /* MODALS */
         .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
@@ -97,10 +98,12 @@
         @media print {
             body { background: white; color: black; display: block; height: auto; overflow: visible; }
             .header, .dashboard, .btn, .modal { display: none !important; }
-            .column { background: white; border: 1px solid #ccc; color: black; }
-            .player-card { background: white; border: 1px solid #ddd; color: black; }
+            .column { background: white; border: 1px solid #ccc; color: black; margin-bottom: 20px; }
+            .player-card { background: white; border: 1px solid #ddd; color: black; page-break-inside: avoid; }
             .bar-track { background: #eee; }
             .bar-text { color: black; text-shadow: none; }
+            .court-container { display: block; }
+            .col-header { color: black !important; border-bottom: 2px solid black; }
         }
     </style>
 </head>
@@ -109,7 +112,9 @@
     <div class="header">
         <h2>Rotation Manager</h2>
         <div style="display:flex; gap:5px;">
-            <button class="btn btn-blue" onclick="toggleModal('settings-modal')">⚙️</button>
+            <button class="btn btn-blue" onclick="toggleModal('settings-modal')" title="Settings">⚙️</button>
+            <button class="btn btn-gray" id="sound-btn" onclick="toggleSound()" title="Toggle Sound">🔊</button>
+            <button class="btn btn-gray" onclick="window.print()" title="Print Current Rotation">🖨️ Print</button>
             <button class="btn btn-gold" onclick="generateGamePlan()">📋 Plan</button>
             <button class="btn btn-gray" onclick="toggleModal('bulk-modal')">📝 Add</button>
             <button class="btn btn-gray" onclick="exportData()">💾 Save</button>
@@ -123,7 +128,7 @@
         <div class="clock-section">
             <div class="clock-display" id="clock">08:00</div>
             <div class="q-badge" id="q-val">Q1</div>
-            <button class="btn btn-gray" style="padding:4px 8px" onclick="playBuzzer()" title="Sound Horn">🔊</button>
+            <button class="btn btn-gray" style="padding:4px 8px" onclick="playAudio('buzzer')" title="Sound Horn">🔊</button>
         </div>
 
         <div class="tracker-section">
@@ -200,6 +205,7 @@
             <h3>Rotation Plan</h3>
             <div id="plan-content" style="max-height:300px; overflow-y:auto; margin-bottom:10px; font-size:0.9rem"></div>
             <button class="btn btn-gray" onclick="toggleModal('plan-modal')">Close</button>
+            <button class="btn btn-blue" onclick="window.print()">Print Plan</button>
         </div>
     </div>
 
@@ -221,35 +227,72 @@
         let teamFouls = 0;
         let timerInt = null;
 
+        // --- SOUND SYSTEM ---
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
+        let soundEnabled = JSON.parse(localStorage.getItem('tiu_sound')) ?? true; // Default to true
 
-        function playBuzzer() {
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('tiu_sound', soundEnabled);
+            updateSoundUI();
+        }
+
+        function updateSoundUI() {
+            const btn = document.getElementById('sound-btn');
+            if(soundEnabled) {
+                btn.innerHTML = "🔊";
+                btn.style.opacity = "1";
+            } else {
+                btn.innerHTML = "🔇";
+                btn.style.opacity = "0.6";
+            }
+        }
+
+        function playAudio(type) {
+            if (!soundEnabled) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            osc.type = 'sawtooth'; 
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime); 
-            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 1); 
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 1.5);
+            const now = audioCtx.currentTime;
+
+            if (type === 'buzzer') {
+                // Long Horn
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(150, now); 
+                osc.frequency.linearRampToValueAtTime(100, now + 1); 
+                gainNode.gain.setValueAtTime(0.5, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                osc.start(now);
+                osc.stop(now + 1.5);
+            } 
+            else if (type === 'whistle') {
+                // Short Whistle/Beep for Start/Stop/NextQ
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.15);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
         }
 
         window.onload = () => { 
             document.getElementById('cfg-qlen').value = config.qLen;
             document.getElementById('cfg-max-to').value = config.maxTO;
             document.getElementById('cfg-foul-limit').value = config.foulLimit;
-            render(); renderTimeouts();
+            render(); renderTimeouts(); updateSoundUI();
             if(clock.run) toggleClock(true);
         };
 
         function toggleClock(state) {
             clock.run = state;
             updateUI();
+            playAudio('whistle'); // Play whistle on start/stop
             if(state) {
                 if(audioCtx.state === 'suspended') audioCtx.resume();
                 clearInterval(timerInt);
@@ -270,7 +313,7 @@
             if(clock.sec === 0) {
                 if(clock.min === 0) { 
                     toggleClock(false); 
-                    playBuzzer(); 
+                    playAudio('buzzer'); // Automatic buzzer
                     return; 
                 }
                 clock.min--; clock.sec = 59;
@@ -297,6 +340,7 @@
             toggleClock(false); clock.q++; clock.min=config.qLen; clock.sec=0; 
             roster.forEach(p => p.shiftTime=0); 
             teamFouls = 0; document.getElementById('team-fouls').innerText = 0;
+            playAudio('whistle');
             save(); render(); 
         }
 
